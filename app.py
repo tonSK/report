@@ -124,6 +124,16 @@ def parse_pdf(file_obj):
 FIELDNAMES = ["ตำแหน่ง", "รหัส", "ชื่อ-สกุล", "ค่าบำเหน็จ", "ปีแรก",
               "ปีแรก_บรรทัด2", "ปีต่อไป", "รวม", "ฐานเบี้ย", "%เบี้ยปีแรก/ฐาน"]
 
+
+def extract_date_from_filename(filename):
+    """Find a dd-mm-yy date inside the filename, e.g.
+    'Lalldailypremium01-09-69.pdf' -> '01/09/69'."""
+    match = re.search(r"(\d{2})-(\d{2})-(\d{2})", filename)
+    if not match:
+        return None
+    dd, mm, yy = match.groups()
+    return f"{dd}/{mm}/{yy}"
+
 # ---------------------------------------------------------------------------
 # เชื่อมต่อ Google Sheets โดยใช้ Service Account (เก็บไว้ใน Streamlit Secrets)
 # ---------------------------------------------------------------------------
@@ -139,13 +149,20 @@ def get_gsheet_client():
 # หน้าเว็บ
 # ---------------------------------------------------------------------------
 sheet_url = st.text_input("วางลิงก์ Google Sheet ปลายทาง (ต้องแชร์ให้ service account ก่อน)")
-worksheet_name = st.text_input("ชื่อชีต (tab) ที่จะเขียนข้อมูลลง", value="Sheet1")
+worksheet_name = st.text_input("ชื่อชีต (tab) ที่จะเขียนข้อมูลลง", value="Import")
 uploaded_file = st.file_uploader("เลือกไฟล์ PDF รายงานเบี้ยประกัน", type=["pdf"])
 
 if uploaded_file and st.button("🚀 แปลงและส่งเข้า Google Sheet"):
     with st.spinner("กำลังอ่านไฟล์ PDF..."):
         rows = parse_pdf(uploaded_file)
     st.success(f"อ่านสำเร็จ พบข้อมูล {len(rows)} แถว")
+
+    report_date = extract_date_from_filename(uploaded_file.name)
+    if report_date:
+        st.info(f"วันที่ของรายงาน (จากชื่อไฟล์): {report_date}")
+    else:
+        st.warning("หาวันที่จากชื่อไฟล์ไม่เจอ (คาดรูปแบบ dd-mm-yy ในชื่อไฟล์) — จะไม่เขียนวันที่ลง K1")
+
     st.dataframe(rows)
 
     if sheet_url:
@@ -157,10 +174,19 @@ if uploaded_file and st.button("🚀 แปลงและส่งเข้า 
                     ws = sh.worksheet(worksheet_name)
                 except gspread.WorksheetNotFound:
                     ws = sh.add_worksheet(title=worksheet_name, rows=1000, cols=20)
+
+                # ล้างข้อมูลเดิมทั้งหมดในชีตนี้ก่อนเสมอ
                 ws.clear()
+
+                # เขียนหัวตารางและข้อมูลใหม่
                 ws.append_row(FIELDNAMES)
                 data_rows = [[r[f] for f in FIELDNAMES] for r in rows]
                 ws.append_rows(data_rows)
+
+                # เขียนวันที่ของรายงาน (จากชื่อไฟล์) ลงเซลล์ K1
+                if report_date:
+                    ws.update(range_name="K1", values=[[report_date]])
+
                 st.success("เขียนเข้า Google Sheet เรียบร้อยแล้ว ✅")
                 st.markdown(f"[เปิด Google Sheet]({sheet_url})")
             except Exception as e:
