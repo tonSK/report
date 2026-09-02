@@ -148,7 +148,9 @@ def get_gsheet_client():
 # ---------------------------------------------------------------------------
 # หน้าเว็บ
 # ---------------------------------------------------------------------------
-sheet_url = st.text_input("วางลิงก์ Google Sheet ปลายทาง (ต้องแชร์ให้ service account ก่อน)")
+DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1fYTibLa8riOyUPzPiu_579f5Ntu9_4B5yGLQJ8-LnA4/edit?usp=sharing"
+
+sheet_url = st.text_input("ลิงก์ Google Sheet ปลายทาง", value=DEFAULT_SHEET_URL)
 worksheet_name = st.text_input("ชื่อชีต (tab) ที่จะเขียนข้อมูลลง", value="Import")
 uploaded_file = st.file_uploader("เลือกไฟล์ PDF รายงานเบี้ยประกัน", type=["pdf"])
 
