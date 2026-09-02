@@ -1,0 +1,4 @@
+streamlit
+pdfplumber
+gspread
+google-auth
