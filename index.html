@@ -14,9 +14,17 @@
 </head>
 <body class="bg-gray-100 text-gray-800 flex flex-col min-h-screen">
 
-    <!-- Header (เอา sticky top-0 z-50 ออกแล้ว จะเลื่อนตามหน้าจอปกติ) -->
-    <header class="bg-[#047dc2] text-white shadow-md p-4 flex justify-between items-center">
-        <h1 class="text-xl font-bold">Daily Report</h1>
+    <!-- Header -->
+    <header class="bg-[#047dc2] text-white shadow-md p-4 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center space-x-3">
+            <!-- ปุ่มสำหรับซ่อน/แสดง Sidebar -->
+            <button onclick="toggleSidebar()" class="bg-[#273482] hover:bg-[#1e286c] text-white p-2 rounded-lg transition-colors focus:outline-none" title="ซ่อน/แสดงเมนู">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+            <h1 class="text-xl font-bold">Daily Report</h1>
+        </div>
         <div class="text-sm bg-[#273482] px-3 py-1 rounded">
             ณ วันที่ : <span id="report-date" class="font-semibold">กำลังโหลด...</span>
         </div>
@@ -26,8 +34,8 @@
     <div class="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
 
         <!-- เมนูด้านข้าง (Sidebar) -->
-        <aside class="bg-white p-4 rounded-xl shadow md:col-span-2 space-y-2 sticky top-6">
-            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">เมนูหลัก</h3>
+        <aside id="sidebar" class="bg-white p-4 rounded-xl shadow md:col-span-2 space-y-2 sticky top-6 transition-all duration-300">
+            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">เมนู</h3>
             <button onclick="switchTab('ranking')" id="btn-ranking" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors bg-[#047dc2] text-white">
                 จัดอันดับ
             </button>
@@ -44,7 +52,7 @@
         </aside>
 
         <!-- พื้นที่แสดงเนื้อหา (Content Area) -->
-        <main class="md:col-span-10 space-y-6">
+        <main id="main-content" class="md:col-span-10 space-y-6 transition-all duration-300">
 
             <!-- หน้าที่ 1: จัดอันดับ -->
             <div id="page-ranking" class="space-y-6">
@@ -150,6 +158,22 @@
 
     <!-- Script สำหรับจัดการแท็บและสร้างกราฟ -->
     <script>
+        // ฟังก์ชันสำหรับซ่อน/แสดง Sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            
+            if (sidebar.classList.contains('hidden')) {
+                sidebar.classList.remove('hidden');
+                mainContent.classList.remove('md:col-span-12');
+                mainContent.classList.add('md:col-span-10');
+            } else {
+                sidebar.classList.add('hidden');
+                mainContent.classList.remove('md:col-span-10');
+                mainContent.classList.add('md:col-span-12');
+            }
+        }
+
         function formatThaiDate(dateStr) {
             if (!dateStr) return '-';
             let parts = dateStr.split('/');
