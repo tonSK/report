@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Report</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js และ ChartDataLabels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Sarabun', sans-serif; } </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex flex-col min-h-screen">
+
+    <!-- Header (ตรึงติดด้านบนสุดด้วย sticky top-0 z-50) -->
+    <header class="bg-[#047dc2] text-white shadow-md p-4 flex justify-between items-center sticky top-0 z-50">
+        <h1 class="text-xl font-bold">Daily Report</h1>
+        <div class="text-sm bg-[#273482] px-3 py-1 rounded">
+            ณ วันที่ : <span id="report-date" class="font-semibold">กำลังโหลด...</span>
+        </div>
+    </header>
+
+    <!-- Layout หลักแบบ Grid: เมนูด้านข้างซ้าย และเนื้อหาด้านขวา -->
+    <div class="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+
+        <!-- เมนูด้านข้าง (Sidebar) -->
+        <aside class="bg-white p-4 rounded-xl shadow md:col-span-2 space-y-2 sticky top-24">
+            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">เมนูหลัก</h3>
+            <button onclick="switchTab('ranking')" id="btn-ranking" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors bg-[#047dc2] text-white">
+                จัดอันดับ
+            </button>
+            <button onclick="switchTab('regionCenter')" id="btn-regionCenter" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100">
+                ภาคศูนย์
+            </button>
+            <button onclick="switchTab('allLevels')" id="btn-allLevels" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100">
+                ทุกระดับ
+            </button>
+            <!-- เมนู Import แบบเปิดหน้าใหม่ -->
+            <a href="https://98report.streamlit.app" target="_blank" class="block w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100">
+                Import ↗
+            </a>
+        </aside>
+
+        <!-- พื้นที่แสดงเนื้อหา (Content Area) -->
+        <main class="md:col-span-10 space-y-6">
+
+            <!-- หน้าที่ 1: จัดอันดับ -->
+            <div id="page-ranking" class="space-y-6">
+                <!-- Top Summary Cards & Gauges -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    <div class="bg-white p-5 rounded-xl shadow flex flex-col items-center justify-center md:col-span-4">
+                        <h3 class="text-gray-600 font-semibold text-base mb-1">% เบี้ยปีแรก / ฐาน</h3>
+                        <div class="relative w-full h-40 flex items-center justify-center">
+                            <canvas id="gaugeChart" class="max-h-full"></canvas>
+                            <div class="absolute inset-x-0 bottom-2 flex items-center justify-center">
+                                <span id="val-n2" class="text-5xl font-bold text-[#273482]">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow flex flex-col justify-center space-y-4 md:col-span-3">
+                        <div class="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-600">
+                            <p class="text-sm font-medium text-gray-600">เบี้ยปีแรก</p>
+                            <p id="val-i2" class="text-2xl font-bold text-blue-900">0</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-lg border-l-4 border-gray-500">
+                            <p class="text-sm font-medium text-gray-600">ฐานเบี้ยปีแรก</p>
+                            <p id="val-m2" class="text-2xl font-bold text-gray-700">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow flex items-center justify-between md:col-span-5">
+                        <div class="w-44 h-44 flex-shrink-0">
+                            <canvas id="pieChart"></canvas>
+                        </div>
+                        <div id="pie-legend-custom" class="flex flex-col justify-center space-y-1.5 pl-4 text-sm overflow-hidden"></div>
+                    </div>
+                </div>
+
+                <section class="bg-white p-5 rounded-xl shadow">
+                    <h2 class="text-xl font-bold text-[#273482] mb-4 border-b pb-2">ภาค : 3 อันดับแรก</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><h4 class="text-base font-bold text-gray-700 mb-2">เบี้ยปีแรก</h4><canvas id="regionPremiumChart" height="70"></canvas></div>
+                        <div><h4 class="text-base font-bold text-gray-700 mb-2">ค่าบำเหน็จ</h4><canvas id="regionCommissionChart" height="70"></canvas></div>
+                    </div>
+                </section>
+
+                <section class="bg-white p-5 rounded-xl shadow">
+                    <h2 class="text-xl font-bold text-[#273482] mb-4 border-b pb-2">ศูนย์ : 5 อันดับแรก</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><h4 class="text-base font-bold text-gray-700 mb-2">เบี้ยปีแรก</h4><canvas id="centerPremiumChart" height="100"></canvas></div>
+                        <div><h4 class="text-base font-bold text-gray-700 mb-2">ค่าบำเหน็จ</h4><canvas id="centerCommissionChart" height="100"></canvas></div>
+                    </div>
+                </section>
+
+                <section class="bg-white p-5 rounded-xl shadow">
+                    <h2 class="text-xl font-bold text-[#273482] mb-4 border-b pb-2">หน่วย : 10 อันดับแรก</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><h4 class="text-base font-bold text-gray-700 mb-2">เบี้ยปีแรก</h4><canvas id="unitPremiumChart" height="200"></canvas></div>
+                        <div><h4 class="text-base font-bold text-gray-700 mb-2">ค่าบำเหน็จ</h4><canvas id="unitCommissionChart" height="200"></canvas></div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- หน้าที่ 2: รายงานภาคและศูนย์ -->
+            <div id="page-regionCenter" class="space-y-6 hidden">
+                <section class="bg-white p-6 rounded-xl shadow overflow-x-auto">
+                    <div id="region-table-title" class="text-center text-xl font-bold text-[#273482] mb-6">
+                        สรุปผลงานฝ่ายขยายงานภูมิภาค 98 ณ วันที่ -
+                    </div>
+                    <table class="w-full text-sm border-collapse min-w-[800px]">
+                        <thead>
+                            <tr class="bg-[#0b2265] text-white text-center">
+                                <th rowspan="2" class="py-3 px-3 border border-blue-900 w-1/4">ชื่อ สกุล</th>
+                                <th colspan="2" class="py-1.5 px-2 border border-blue-900">ผลงาน</th>
+                                <th colspan="4" class="py-1.5 px-2 border border-blue-900">บริหารหน่วย</th>
+                                <th colspan="4" class="py-1.5 px-2 border border-blue-900">บริหารศูนย์</th>
+                            </tr>
+                            <tr class="bg-[#0b2265] text-white text-center text-xs">
+                                <th class="py-1.5 px-2 border border-blue-900">เบี้ยปีแรก</th>
+                                <th class="py-1.5 px-2 border border-blue-900">ค่าบำเหน็จ</th>
+                                <th class="py-1.5 px-2 border border-blue-900">มี</th>
+                                <th class="py-1.5 px-2 border border-blue-900">เต็ม</th>
+                                <th class="py-1.5 px-2 border border-blue-900">ตก</th>
+                                <th class="py-1.5 px-2 border border-blue-900">%</th>
+                                <th class="py-1.5 px-2 border border-blue-900">มี</th>
+                                <th class="py-1.5 px-2 border border-blue-900">เต็ม</th>
+                                <th class="py-1.5 px-2 border border-blue-900">ตก</th>
+                                <th class="py-1.5 px-2 border border-blue-900">%</th>
+                            </tr>
+                        </thead>
+                        <tbody id="region-table-body">
+                            <!-- ข้อมูลจะถูกเติมด้วย JavaScript -->
+                        </tbody>
+                    </table>
+                </section>
+            </div>
+
+            <!-- หน้าที่ 3: ทุกระดับ -->
+            <div id="page-allLevels" class="space-y-6 hidden">
+                <section class="bg-white p-6 rounded-xl shadow">
+                    <h2 class="text-xl font-bold text-[#273482] mb-4 border-b pb-2">รายงานทุกระดับ</h2>
+                    <p class="text-gray-600">ส่วนนี้สำหรับแสดงข้อมูลสรุปภาพรวมในทุกระดับชั้น</p>
+                </section>
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- Script สำหรับจัดการแท็บและสร้างกราฟ -->
+    <script>
+        function formatThaiDate(dateStr) {
+            if (!dateStr) return '-';
+            let parts = dateStr.split('/');
+            if (parts.length !== 3) return dateStr;
+
+            let day = parseInt(parts[0], 10);
+            let month = parseInt(parts[1], 10);
+            let year = parts[2];
+
+            const thaiMonths = [
+                "", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", 
+                "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", 
+                "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+            ];
+
+            if (month >= 1 && month <= 12) {
+                return `${day} ${thaiMonths[month]} ${year}`;
+            }
+            return dateStr;
+        }
+
+        function switchTab(tabName) {
+            document.getElementById('page-ranking').classList.add('hidden');
+            document.getElementById('page-regionCenter').classList.add('hidden');
+            document.getElementById('page-allLevels').classList.add('hidden');
+
+            document.getElementById('btn-ranking').className = 'w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100';
+            document.getElementById('btn-regionCenter').className = 'w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100';
+            document.getElementById('btn-allLevels').className = 'w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100';
+
+            document.getElementById('page-' + tabName).classList.remove('hidden');
+            document.getElementById('btn-' + tabName).className = 'w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors bg-[#047dc2] text-white';
+        }
+
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby2xxodhHNVf53AYEmSNFxBQ5HZO_1j-04n-2E12Y7OxcIpqKRw6dLYxr87pUQ4FZ-e/exec';
+
+        function cleanNumber(val) {
+            if (typeof val === 'number') return val;
+            if (!val) return 0;
+            let num = Number(String(val).replace(/,/g, ''));
+            return isNaN(num) ? 0 : num;
+        }
+
+        fetch(WEB_APP_URL)
+            .then(response => response.json())
+            .then(data => {
+                let rawDate = data.summary.dateColumnHeader || '';
+                let formattedDate = formatThaiDate(rawDate);
+                document.getElementById('report-date').innerText = formattedDate;
+                document.getElementById('region-table-title').innerText = `สรุปผลงานฝ่ายขยายงานภูมิภาค 98 ณ วันที่ ${formattedDate}`;
+                
+                let i2Val = cleanNumber(data.summary.i2);
+                let m2Val = cleanNumber(data.summary.m2);
+                let n2Val = cleanNumber(data.summary.n2);
+
+                document.getElementById('val-i2').innerText = i2Val.toLocaleString();
+                document.getElementById('val-m2').innerText = m2Val.toLocaleString();
+                document.getElementById('val-n2').innerText = n2Val.toFixed(2) + '%';
+
+                new Chart(document.getElementById('gaugeChart').getContext('2d'), {
+                    type: 'doughnut',
+                    data: { datasets: [{ data: [n2Val, Math.max(0, 100 - n2Val)], backgroundColor: ['#047dc2', '#e5e7eb'], borderWidth: 0 }] },
+                    options: { circumference: 180, rotation: 270, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+                });
+
+                let pieMap = {};
+                let pieTotal = 0;
+                data.rows.forEach(row => {
+                    let position = row[0]; 
+                    let name = row[2]; 
+                    let premium = cleanNumber(row[8]); 
+                    
+                    if((position === "ภาค" || position === "ภาค(GL)") && name) {
+                        pieMap[name] = (pieMap[name] || 0) + premium;
+                        pieTotal += premium;
+                    }
+                });
+
+                let sortedPie = Object.entries(pieMap).sort((a,b) => b[1] - a[1]);
+                let pieColors = ['#1e3a8a', '#047dc2', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'];
+
+                new Chart(document.getElementById('pieChart').getContext('2d'), {
+                    type: 'pie',
+                    data: {
+                        labels: sortedPie.map(item => item[0]),
+                        datasets: [{
+                            data: sortedPie.map(item => item[1]),
+                            backgroundColor: pieColors
+                        }]
+                    },
+                    options: {
+                        plugins: { 
+                            legend: { display: false },
+                            datalabels: { display: false }
+                        }
+                    }
+                });
+
+                let legendContainer = document.getElementById('pie-legend-custom');
+                legendContainer.innerHTML = '';
+                sortedPie.forEach((item, index) => {
+                    let val = item[1];
+                    let pct = pieTotal > 0 ? ((val / pieTotal) * 100).toFixed(1) + '%' : '0.0%';
+                    let name = item[0];
+                    let color = pieColors[index % pieColors.length];
+
+                    let itemDiv = document.createElement('div');
+                    itemDiv.className = 'flex items-center space-x-2 truncate';
+                    itemDiv.innerHTML = `
+                        <span class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: ${color};"></span>
+                        <span class="font-bold text-gray-800 flex-shrink-0">${pct}</span>
+                        <span class="text-gray-700 truncate" title="${name}">${name}</span>
+                    `;
+                    legendContainer.appendChild(itemDiv);
+                });
+
+                // สร้างตารางรายงานภาคและศูนย์
+                buildRegionCenterTable(data.rows);
+
+                function renderFilteredChart(canvasId, targetPositions, valueIndex, color, limit) {
+                    let mapData = {};
+                    data.rows.forEach(row => {
+                        let position = row[0]; 
+                        let name = row[2];     
+                        let val = cleanNumber(row[valueIndex]); 
+                        let isMatch = Array.isArray(targetPositions) ? targetPositions.includes(position) : position === targetPositions;
+                        if(isMatch && name) {
+                            mapData[name] = (mapData[name] || 0) + val;
+                        }
+                    });
+
+                    let sorted = Object.entries(mapData).sort((a,b) => b[1] - a[1]).slice(0, limit);
+                    
+                    return new Chart(document.getElementById(canvasId).getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: sorted.map(i => i[0]),
+                            datasets: [{ data: sorted.map(i => i[1]), backgroundColor: color, borderRadius: 4 }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            plugins: { 
+                                legend: { display: false },
+                                datalabels: {
+                                    anchor: 'end', align: 'start',
+                                    formatter: (value) => value.toLocaleString(),
+                                    font: { weight: 'normal', size: 15 }, 
+                                    color: '#ffffff' 
+                                }
+                            },
+                            scales: { 
+                                x: { display: false, grid: { display: false } }, 
+                                y: { grid: { display: false }, ticks: { font: { size: 13 }, color: '#374151' } }  
+                            }
+                        },
+                        plugins: [ChartDataLabels]
+                    });
+                }
+
+                renderFilteredChart('regionPremiumChart', ['ภาค', 'ภาค(GL)'], 8, '#047dc2', 3);
+                renderFilteredChart('regionCommissionChart', ['ภาค', 'ภาค(GL)'], 7, '#273482', 3);
+                renderFilteredChart('centerPremiumChart', 'ศูนย์', 8, '#047dc2', 5);
+                renderFilteredChart('centerCommissionChart', 'ศูนย์', 7, '#273482', 5);
+                renderFilteredChart('unitPremiumChart', 'หน่วย', 8, '#047dc2', 10);
+                renderFilteredChart('unitCommissionChart', 'หน่วย', 7, '#273482', 10);
+
+            })
+            .catch(err => console.error('Error loading data from Google Sheet:', err));
+
+        function buildRegionCenterTable(rows) {
+            let tbody = document.getElementById('region-table-body');
+            tbody.innerHTML = '';
+
+            // 1. ดึงเฉพาะตำแหน่ง ภาค หรือ ภาค(GL) และเรียงตามเบี้ยปีแรก (ช่อง i หรือ index 8) จากมากไปน้อย
+            let regions = rows.filter(r => r[0] === "ภาค" || r[0] === "ภาค(GL)");
+            regions.sort((a, b) => cleanNumber(b[8]) - cleanNumber(a[8]));
+
+            regions.forEach((reg, index) => {
+                let regName = reg[2]; // ช่อง B (ชื่อภาค)
+                let regPrem = cleanNumber(reg[8]); // ช่อง i (เบี้ยปีแรก)
+                let regComm = cleanNumber(reg[7]); // ช่อง h (ค่าบำเหน็จ)
+
+                // 2. ดึงข้อมูล "ศูนย์" ที่สังกัดภาคนี้ (ตำแหน่ง A เป็น "ศูนย์" และ ช่อง E เป็นชื่อภาค)
+                let centers = rows.filter(r => r[0] === "ศูนย์" && r[4] === regName);
+                
+                let cenMe = centers.length;
+                let cenTem = centers.filter(r => cleanNumber(r[7]) >= 15000).length;
+                let cenTok = cenMe - cenTem;
+                let cenPct = cenMe > 0 ? ((cenTem / cenMe) * 100).toFixed(1) + '%' : '0.0%';
+
+                // บริหารหน่วยของภาค
+                let unitsInReg = rows.filter(r => r[0] === "หน่วย" && r[4] === regName);
+                let unitMe = unitsInReg.length;
+                let unitTem = unitsInReg.filter(r => cleanNumber(r[7]) >= 2500).length;
+                let unitTok = unitMe - unitTem;
+                let unitPct = unitMe > 0 ? ((unitTem / unitMe) * 100).toFixed(1) + '%' : '0.0%';
+
+                // แถวหัวข้อภาค (สีฟ้าเข้ม)
+                let regTr = document.createElement('tr');
+                regTr.className = 'bg-[#1e3a8a] text-white font-bold text-center';
+                regTr.innerHTML = `
+                    <td class="py-2 px-3 text-left border border-blue-900">${index + 1} ${regName}</td>
+                    <td class="py-2 px-2 text-right border border-blue-900">${regPrem.toLocaleString()}</td>
+                    <td class="py-2 px-2 text-right border border-blue-900">${regComm.toLocaleString()}</td>
+                    <td class="py-2 px-2 text-center border border-blue-900">${unitMe}</td>
+                    <td class="py-2 px-2 text-center border border-blue-900">${unitTem}</td>
+                    <td class="py-2 px-2 text-center border border-blue-900 text-red-300">${unitTok}</td>
+                    <td class="py-2 px-2 text-center border border-blue-900 text-red-300">${unitPct}</td>
+                    <td class="py-2 px-2 text-center border border-blue-900">${cenMe}</td>
+                    <td class="py-2 px-2 text-center border border-blue-900">${cenTem}</td>
+                    <td class="py-2 px-2 text-center border border-blue-900 text-red-300">${cenTok}</td>
+                    <td class="py-2 px-2 text-center border border-blue-900 text-red-300">${cenPct}</td>
+                `;
+                tbody.appendChild(regTr);
+
+                // 3. วนลูปแสดงข้อมูล "ศูนย์" ที่อยู่ภายใต้ภาคนี้ (เรียงตามเบี้ยปีแรกสูงสุด)
+                centers.sort((a, b) => cleanNumber(b[8]) - cleanNumber(a[8]));
+
+                centers.forEach((cen, cIdx) => {
+                    let cenName = cen[2]; // ชื่อศูนย์
+                    let cenPrem = cleanNumber(cen[8]); // เบี้ยปีแรก ช่อง i
+                    let cenComm = cleanNumber(cen[7]); // ค่าบำเหน็จ ช่อง h
+                    
+                    // บริหารหน่วยของศูนย์นี้ (ตำแหน่ง A เป็น "หน่วย" และ ช่อง F เป็นชื่อศูนย์นี้)
+                    let unitsInCen = rows.filter(r => r[0] === "หน่วย" && r[5] === cenName);
+                    let cUnitMe = unitsInCen.length;
+                    let cUnitTem = unitsInCen.filter(r => cleanNumber(r[7]) >= 2500).length;
+                    let cUnitTok = cUnitMe - cUnitTem;
+                    let cUnitPct = cUnitMe > 0 ? ((cUnitTem / cUnitMe) * 100).toFixed(1) + '%' : '0.0%';
+
+                    let cenTr = document.createElement('tr');
+                    cenTr.className = 'bg-white hover:bg-gray-50 border-b text-center';
+
+                    // ตรวจสอบเงื่อนไขค่า H ของศูนย์ น้อยกว่า 15,000 หรือไม่
+                    if (cenComm < 15000) {
+                        let diffCen = 15000 - cenComm;
+                        cenTr.innerHTML = `
+                            <td class="py-1.5 px-3 text-left pl-6 border font-semibold text-gray-800">${cIdx + 1} ${cenName}</td>
+                            <td class="py-1.5 px-2 text-right border text-gray-800">${cenPrem.toLocaleString()}</td>
+                            <td class="py-1.5 px-2 text-right border text-gray-800">${cenComm.toLocaleString()}</td>
+                            <td class="py-1.5 px-2 text-center border">${cUnitMe}</td>
+                            <td class="py-1.5 px-2 text-center border">${cUnitTem}</td>
+                            <td class="py-1.5 px-2 text-center border text-red-600">${cUnitTok}</td>
+                            <td class="py-1.5 px-2 text-center border">${cUnitPct}</td>
+                            <td colspan="4" class="py-1.5 px-2 text-left text-red-600 font-semibold border pl-4">ขาดคอม ${diffCen.toLocaleString()} เต็มศูนย์</td>
+                        `;
+                    } else {
+                        cenTr.innerHTML = `
+                            <td class="py-1.5 px-3 text-left pl-6 border font-semibold text-gray-800">${cIdx + 1} ${cenName}</td>
+                            <td class="py-1.5 px-2 text-right border text-gray-800">${cenPrem.toLocaleString()}</td>
+                            <td class="py-1.5 px-2 text-right border text-gray-800">${cenComm.toLocaleString()}</td>
+                            <td class="py-1.5 px-2 text-center border">${cUnitMe}</td>
+                            <td class="py-1.5 px-2 text-center border">${cUnitTem}</td>
+                            <td class="py-1.5 px-2 text-center border text-red-600">${cUnitTok}</td>
+                            <td class="py-1.5 px-2 text-center border">${cUnitPct}</td>
+                            <td colspan="4" class="py-1.5 px-2 border"></td>
+                        `;
+                    }
+                    tbody.appendChild(cenTr);
+                });
+            });
+        }
+    </script>
+
+</body>
+</html>
