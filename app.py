@@ -117,6 +117,13 @@ def parse_pdf(file_obj):
     lines = extract_lines(file_obj)
     rows = []
     current_label = ""
+    # ใช้ไล่ตามลำดับสังกัด: ฝ่าย > ภาค/ภาค(GL) > ศูนย์ > หน่วย > ตัวแทน
+    # เวลาเจอตำแหน่งที่สูงกว่าใหม่ ต้องล้างตำแหน่งที่ต่ำกว่าทั้งหมด เพราะยังไม่มีข้อมูลของสังกัดใหม่
+    current_fah = ""
+    current_pak = ""
+    current_soon = ""
+    current_nuay = ""
+
     for pno, top, ws in lines:
         if should_skip(ws):
             continue
@@ -124,14 +131,39 @@ def parse_pdf(file_obj):
             if rows:
                 rows[-1]["เบี้ยไม่คิดผลงาน"] = ws[0]["text"]
             continue
+
         row = parse_data_line(ws, current_label)
         current_label = row["ตำแหน่ง"]
+        name = row["ชื่อ-สกุล"]
+
+        if current_label == "ฝ่าย":
+            current_fah = name
+            current_pak = ""
+            current_soon = ""
+            current_nuay = ""
+        elif current_label in ("ภาค", "ภาค(GL)"):
+            current_pak = name
+            current_soon = ""
+            current_nuay = ""
+        elif current_label == "ศูนย์":
+            current_soon = name
+            current_nuay = ""
+        elif current_label == "หน่วย":
+            current_nuay = name
+        # current_label == "ตัวแทน" -> ไม่ต้องเปลี่ยนอะไร ใช้สังกัดปัจจุบันตามที่ไล่มา
+
+        row["ฝ่าย"] = current_fah
+        row["ภาค"] = current_pak
+        row["ศูนย์"] = current_soon
+        row["หน่วย"] = current_nuay
+
         rows.append(row)
     return rows
 
 
-FIELDNAMES = ["ตำแหน่ง", "รหัส", "ชื่อ-สกุล", "ค่าบำเหน็จ", "เบี้ยเครดิต",
-              "เบี้ยไม่คิดผลงาน", "ปีต่อไป", "รวม", "ฐานเบี้ย", "%เบี้ยปีแรก/ฐาน"]
+FIELDNAMES = ["ตำแหน่ง", "รหัส", "ชื่อ-สกุล", "ฝ่าย", "ภาค", "ศูนย์", "หน่วย",
+              "ค่าบำเหน็จ", "เบี้ยเครดิต", "เบี้ยไม่คิดผลงาน", "ปีต่อไป", "รวม",
+              "ฐานเบี้ย", "%เบี้ยปีแรก/ฐาน"]
 
 
 def extract_date_from_filename(filename):
