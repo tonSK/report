@@ -25,12 +25,10 @@
         table.custom-horizontal-table thead th {
             border-bottom: 2px solid #0b2265 !important;
         }
-        /* กำจัดช่องว่างระหว่างแถวหัวตารางชั้นที่ 1 และ 2 ให้แนบสนิท */
         table.custom-horizontal-table thead tr:first-child th {
             border-bottom: 2px solid #0b2265 !important;
         }
 
-        /* ตรึงหัวตารางเฉพาะหน้า ทุกระดับ */
         #page-allLevels .overflow-x-auto {
             max-height: 75vh;
             overflow-y: auto;
@@ -48,7 +46,6 @@
             box-shadow: inset 0 -1px 0 #0b2265, 0 1px 0 #0b2265 !important;
         }
 
-        /* หน้า ภาคศูนย์ ไม่ตรึงหัวตาราง */
         #page-regionCenter .overflow-x-auto {
             overflow-y: visible;
         }
@@ -352,6 +349,15 @@
             return (month >= 1 && month <= 12) ? `${day} ${thaiMonths[month]} ${year}` : dateStr;
         }
 
+        function getFirstName(fullName) {
+            if (!fullName) return '';
+            let cleaned = String(fullName).trim();
+            // ตัดคำนำหน้าหรือตัวเลขนำหน้าออกเผื่อมี เช่น "1 ธีร..." หรือ "ฝ่าย ..."
+            cleaned = cleaned.replace(/^[0-9]+\s*/, '');
+            let parts = cleaned.split(/\s+/);
+            return parts[0] || cleaned;
+        }
+
         function switchTab(tabName) {
             document.getElementById('page-ranking').classList.add('hidden');
             document.getElementById('page-regionCenter').classList.add('hidden');
@@ -453,6 +459,7 @@
                         if(isMatch && name) { mapData[name] = (mapData[name] || 0) + val; }
                     });
                     let sorted = Object.entries(mapData).sort((a,b) => b[1] - a[1]).slice(0, limit);
+                    
                     return new Chart(document.getElementById(canvasId).getContext('2d'), {
                         type: 'bar',
                         data: {
@@ -461,6 +468,8 @@
                         },
                         options: {
                             indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: true,
                             layout: {
                                 padding: {
                                     left: 10,
@@ -470,21 +479,23 @@
                             plugins: { 
                                 legend: { display: false },
                                 datalabels: {
-                                    anchor: 'end', align: 'start',
-                                    formatter: (value) => value.toLocaleString(),
-                                    font: { weight: 'normal', size: 13 }, color: '#ffffff' 
+                                    anchor: 'start', 
+                                    align: 'end',
+                                    formatter: (value, context) => {
+                                        let fullName = context.chart.data.labels[context.dataIndex];
+                                        let firstName = getFirstName(fullName);
+                                        return firstName + '  (' + value.toLocaleString() + ')';
+                                    },
+                                    font: { weight: 'bold', size: 11 }, 
+                                    color: '#ffffff' 
                                 }
                             },
                             scales: { 
                                 x: { display: false, grid: { display: false } }, 
                                 y: { 
+                                    display: false,
                                     grid: { display: false }, 
-                                    ticks: { 
-                                        font: { size: 12 }, 
-                                        color: '#374151',
-                                        autoSkip: false,
-                                        padding: 8
-                                    } 
+                                    ticks: { display: false }
                                 } 
                             }
                         },
