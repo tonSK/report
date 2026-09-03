@@ -103,7 +103,7 @@ def parse_data_line(ws, current_label):
 
     row = {
         "ตำแหน่ง": label, "รหัส": code, "ชื่อ-สกุล": name,
-        "ค่าบำเหน็จ": "", "เบี้ยเครดิต": "", "เบี้ยไม่คิดผลงาน": "",
+        "ค่าบำเหน็จ": "", "ปีแรก": "", "เบี้ยไม่คิดผลงาน": "",
         "ปีต่อไป": "", "รวม": "", "ฐานเบี้ย": "", "%เบี้ยปีแรก/ฐาน": "",
     }
     for text, x0 in texts_with_x[idx:]:
@@ -122,7 +122,7 @@ def parse_pdf(file_obj):
             continue
         if is_continuation_number_line(ws):
             if rows:
-                rows[-1]["ปีแรก_บรรทัด2"] = ws[0]["text"]
+                rows[-1]["เบี้ยไม่คิดผลงาน"] = ws[0]["text"]
             continue
         row = parse_data_line(ws, current_label)
         current_label = row["ตำแหน่ง"]
@@ -130,18 +130,18 @@ def parse_pdf(file_obj):
     return rows
 
 
-FIELDNAMES = ["ตำแหน่ง", "รหัส", "ชื่อ-สกุล", "ค่าบำเหน็จ", "เบี้ยเครดิต",
+FIELDNAMES = ["ตำแหน่ง", "รหัส", "ชื่อ-สกุล", "ค่าบำเหน็จ", "ปีแรก",
               "เบี้ยไม่คิดผลงาน", "ปีต่อไป", "รวม", "ฐานเบี้ย", "%เบี้ยปีแรก/ฐาน"]
 
 
 def extract_date_from_filename(filename):
     """Find a dd-mm-yy date inside the filename, e.g.
-    'Lalldailypremium01-09-69.pdf' -> '01/09/69'."""
+    'Lallmonthpremium31-08-69.pdf' -> '31/08/2569'."""
     match = re.search(r"(\d{2})-(\d{2})-(\d{2})", filename)
     if not match:
         return None
     dd, mm, yy = match.groups()
-    return f"{dd}/{mm}/{yy}"
+    return f"{dd}/{mm}/25{yy}"
 
 # ---------------------------------------------------------------------------
 # เชื่อมต่อ Google Sheets โดยใช้ Service Account (เก็บไว้ใน Streamlit Secrets)
@@ -172,7 +172,7 @@ if uploaded_file and st.button("🚀 แปลงและส่งเข้า 
     if report_date:
         st.info(f"วันที่ของรายงาน (จากชื่อไฟล์): {report_date}")
     else:
-        st.warning("หาวันที่จากชื่อไฟล์ไม่เจอ (คาดรูปแบบ dd-mm-yy ในชื่อไฟล์) — จะไม่เขียนวันที่ลง K1")
+        st.warning("หาวันที่จากชื่อไฟล์ไม่เจอ (คาดรูปแบบ dd-mm-yy ในชื่อไฟล์) — จะไม่เขียนวันที่ลง K1/K2")
 
     st.dataframe(rows)
 
@@ -194,9 +194,10 @@ if uploaded_file and st.button("🚀 แปลงและส่งเข้า 
                 data_rows = [[r[f] for f in FIELDNAMES] for r in rows]
                 ws.append_rows(data_rows)
 
-                # เขียนวันที่ของรายงาน (จากชื่อไฟล์) ลงเซลล์ K1
+                # เขียนหัวข้อ "วันที่" ที่ K1 และวันที่ของรายงาน (จากชื่อไฟล์) ที่ K2
                 if report_date:
-                    ws.update(range_name="K1", values=[[report_date]])
+                    ws.update(range_name="K1", values=[["วันที่"]])
+                    ws.update(range_name="K2", values=[[report_date]])
 
                 st.success("เขียนเข้า Google Sheet เรียบร้อยแล้ว ✅")
                 st.markdown(f"[เปิด Google Sheet]({sheet_url})")
