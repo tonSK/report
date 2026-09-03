@@ -204,7 +204,7 @@ if uploaded_file and st.button("🚀 แปลงและส่งเข้า 
     if report_date:
         st.info(f"วันที่ของรายงาน (จากชื่อไฟล์): {report_date}")
     else:
-        st.warning("หาวันที่จากชื่อไฟล์ไม่เจอ (คาดรูปแบบ dd-mm-yy ในชื่อไฟล์) — จะไม่เขียนวันที่ลง K1/K2")
+        st.warning("หาวันที่จากชื่อไฟล์ไม่เจอ (คาดรูปแบบ dd-mm-yy ในชื่อไฟล์) — จะไม่เขียนวันที่ลง O1")
 
     st.dataframe(rows)
 
@@ -226,10 +226,9 @@ if uploaded_file and st.button("🚀 แปลงและส่งเข้า 
                 data_rows = [[r[f] for f in FIELDNAMES] for r in rows]
                 ws.append_rows(data_rows)
 
-                # เขียนหัวข้อ "วันที่" ที่ K1 และวันที่ของรายงาน (จากชื่อไฟล์) ที่ K2
+                # เขียนวันที่ของรายงาน (จากชื่อไฟล์) ที่ O1
                 if report_date:
-                    ws.update(range_name="K1", values=[["วันที่"]])
-                    ws.update(range_name="K2", values=[[report_date]])
+                    ws.update(range_name="O1", values=[[report_date]])
 
                 st.success("เขียนเข้า Google Sheet เรียบร้อยแล้ว ✅")
                 st.markdown(f"[เปิด Google Sheet]({sheet_url})")
