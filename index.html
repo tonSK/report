@@ -23,7 +23,32 @@
             border-bottom: 1px solid #cbd5e1 !important;
         }
         table.custom-horizontal-table thead th {
-            border-bottom: 2px solid #1e3a8a !important;
+            border-bottom: 2px solid #0b2265 !important;
+        }
+        /* กำจัดช่องว่างระหว่างแถวหัวตารางชั้นที่ 1 และ 2 ให้แนบสนิท */
+        table.custom-horizontal-table thead tr:first-child th {
+            border-bottom: 2px solid #0b2265 !important;
+        }
+
+        /* ตรึงหัวตารางและลบช่องว่างระหว่างชั้นหัวตารางทั้งหมด */
+        #page-allLevels .overflow-x-auto,
+        #page-regionCenter .overflow-x-auto {
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        
+        #page-allLevels thead,
+        #page-regionCenter thead {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+
+        #page-allLevels thead th,
+        #page-regionCenter thead th {
+            background-color: #0b2265 !important;
+            border-bottom: none !important;
+            box-shadow: inset 0 -1px 0 #0b2265, 0 1px 0 #0b2265 !important;
         }
 
         @media print {
@@ -63,9 +88,11 @@
                 width: 100% !important;
             }
 
-            #page-regionCenter .overflow-x-auto {
+            #page-regionCenter .overflow-x-auto,
+            #page-allLevels .overflow-x-auto {
                 overflow: visible !important;
                 width: 100% !important;
+                max-height: none !important;
             }
             
             #page-regionCenter table {
@@ -111,7 +138,8 @@
                 display: none !important;
             }
 
-            thead { display: table-header-group !important; }
+            thead { position: static !important; }
+            thead tr th { position: static !important; }
             tr { page-break-inside: avoid !important; break-inside: avoid !important; }
         }
     </style>
@@ -134,7 +162,7 @@
 
     <div class="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
 
-        <aside id="sidebar" class="bg-white p-4 rounded-xl shadow md:col-span-2 space-y-2 sticky top-6 transition-all duration-300">
+        <aside id="sidebar" class="bg-white p-4 rounded-xl shadow md:col-span-2 space-y-2 sticky top-20 transition-all duration-300">
             <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">เมนู</h3>
             <button onclick="switchTab('ranking')" id="btn-ranking" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors bg-[#047dc2] text-white">
                 จัดอันดับ
