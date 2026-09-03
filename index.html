@@ -461,15 +461,32 @@
                         },
                         options: {
                             indexAxis: 'y',
+                            layout: {
+                                padding: {
+                                    left: 10,
+                                    right: 20
+                                }
+                            },
                             plugins: { 
                                 legend: { display: false },
                                 datalabels: {
                                     anchor: 'end', align: 'start',
                                     formatter: (value) => value.toLocaleString(),
-                                    font: { weight: 'normal', size: 15 }, color: '#ffffff' 
+                                    font: { weight: 'normal', size: 13 }, color: '#ffffff' 
                                 }
                             },
-                            scales: { x: { display: false, grid: { display: false } }, y: { grid: { display: false }, ticks: { font: { size: 13 }, color: '#374151' } } }
+                            scales: { 
+                                x: { display: false, grid: { display: false } }, 
+                                y: { 
+                                    grid: { display: false }, 
+                                    ticks: { 
+                                        font: { size: 12 }, 
+                                        color: '#374151',
+                                        autoSkip: false,
+                                        padding: 8
+                                    } 
+                                } 
+                            }
                         },
                         plugins: [ChartDataLabels]
                     });
