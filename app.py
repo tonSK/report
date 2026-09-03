@@ -92,6 +92,15 @@ def parse_data_line(ws, current_label):
         idx += 1
     name = " ".join(name_tokens).replace(" - ", "-").strip()
 
+    # เผื่อไฟล์บางแบบ (เช่นรายงานรายวัน) ตำแหน่ง x ของ "รหัส" ไม่ตรงช่วงที่คาดไว้
+    # จึงหลุดไปรวมอยู่ในชื่อแทน เช่น "98 สุภัทรชัย โกศาคาร"
+    # ถ้ายังไม่มีรหัส และคำแรกของชื่อเป็นตัวเลขล้วน ให้แยกออกมาเป็นรหัส
+    if not code and name:
+        first_word, _, rest = name.partition(" ")
+        if re.match(r"^[\d.\-/]+$", first_word):
+            code = first_word
+            name = rest.strip()
+
     row = {
         "ตำแหน่ง": label, "รหัส": code, "ชื่อ-สกุล": name,
         "ค่าบำเหน็จ": "", "ปีแรก": "", "ปีแรก_บรรทัด2": "",
