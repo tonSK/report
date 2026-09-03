@@ -14,8 +14,8 @@
 </head>
 <body class="bg-gray-100 text-gray-800 flex flex-col min-h-screen">
 
-    <!-- Header (ตรึงติดด้านบนสุดด้วย sticky top-0 z-50) -->
-    <header class="bg-[#047dc2] text-white shadow-md p-4 flex justify-between items-center sticky top-0 z-50">
+    <!-- Header (เอา sticky top-0 z-50 ออกแล้ว จะเลื่อนตามหน้าจอปกติ) -->
+    <header class="bg-[#047dc2] text-white shadow-md p-4 flex justify-between items-center">
         <h1 class="text-xl font-bold">Daily Report</h1>
         <div class="text-sm bg-[#273482] px-3 py-1 rounded">
             ณ วันที่ : <span id="report-date" class="font-semibold">กำลังโหลด...</span>
@@ -26,7 +26,7 @@
     <div class="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
 
         <!-- เมนูด้านข้าง (Sidebar) -->
-        <aside class="bg-white p-4 rounded-xl shadow md:col-span-2 space-y-2 sticky top-24">
+        <aside class="bg-white p-4 rounded-xl shadow md:col-span-2 space-y-2 sticky top-6">
             <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">เมนูหลัก</h3>
             <button onclick="switchTab('ranking')" id="btn-ranking" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors bg-[#047dc2] text-white">
                 จัดอันดับ
@@ -55,7 +55,7 @@
                         <div class="relative w-full h-40 flex items-center justify-center">
                             <canvas id="gaugeChart" class="max-h-full"></canvas>
                             <div class="absolute inset-x-0 bottom-2 flex items-center justify-center">
-                                <span id="val-n2" class="text-5xl font-bold text-[#273482]">0%</span>
+                                <span id="val-n2" class="text-4xl font-bold text-[#273482]">0%</span>
                             </div>
                         </div>
                     </div>
@@ -323,16 +323,14 @@
             let tbody = document.getElementById('region-table-body');
             tbody.innerHTML = '';
 
-            // 1. ดึงเฉพาะตำแหน่ง ภาค หรือ ภาค(GL) และเรียงตามเบี้ยปีแรก (ช่อง i หรือ index 8) จากมากไปน้อย
             let regions = rows.filter(r => r[0] === "ภาค" || r[0] === "ภาค(GL)");
             regions.sort((a, b) => cleanNumber(b[8]) - cleanNumber(a[8]));
 
             regions.forEach((reg, index) => {
-                let regName = reg[2]; // ช่อง B (ชื่อภาค)
-                let regPrem = cleanNumber(reg[8]); // ช่อง i (เบี้ยปีแรก)
-                let regComm = cleanNumber(reg[7]); // ช่อง h (ค่าบำเหน็จ)
+                let regName = reg[2]; 
+                let regPrem = cleanNumber(reg[8]); 
+                let regComm = cleanNumber(reg[7]); 
 
-                // 2. ดึงข้อมูล "ศูนย์" ที่สังกัดภาคนี้ (ตำแหน่ง A เป็น "ศูนย์" และ ช่อง E เป็นชื่อภาค)
                 let centers = rows.filter(r => r[0] === "ศูนย์" && r[4] === regName);
                 
                 let cenMe = centers.length;
@@ -340,14 +338,12 @@
                 let cenTok = cenMe - cenTem;
                 let cenPct = cenMe > 0 ? ((cenTem / cenMe) * 100).toFixed(1) + '%' : '0.0%';
 
-                // บริหารหน่วยของภาค
                 let unitsInReg = rows.filter(r => r[0] === "หน่วย" && r[4] === regName);
                 let unitMe = unitsInReg.length;
                 let unitTem = unitsInReg.filter(r => cleanNumber(r[7]) >= 2500).length;
                 let unitTok = unitMe - unitTem;
                 let unitPct = unitMe > 0 ? ((unitTem / unitMe) * 100).toFixed(1) + '%' : '0.0%';
 
-                // แถวหัวข้อภาค (สีฟ้าเข้ม)
                 let regTr = document.createElement('tr');
                 regTr.className = 'bg-[#1e3a8a] text-white font-bold text-center';
                 regTr.innerHTML = `
@@ -365,15 +361,13 @@
                 `;
                 tbody.appendChild(regTr);
 
-                // 3. วนลูปแสดงข้อมูล "ศูนย์" ที่อยู่ภายใต้ภาคนี้ (เรียงตามเบี้ยปีแรกสูงสุด)
                 centers.sort((a, b) => cleanNumber(b[8]) - cleanNumber(a[8]));
 
                 centers.forEach((cen, cIdx) => {
-                    let cenName = cen[2]; // ชื่อศูนย์
-                    let cenPrem = cleanNumber(cen[8]); // เบี้ยปีแรก ช่อง i
-                    let cenComm = cleanNumber(cen[7]); // ค่าบำเหน็จ ช่อง h
+                    let cenName = cen[2]; 
+                    let cenPrem = cleanNumber(cen[8]); 
+                    let cenComm = cleanNumber(cen[7]); 
                     
-                    // บริหารหน่วยของศูนย์นี้ (ตำแหน่ง A เป็น "หน่วย" และ ช่อง F เป็นชื่อศูนย์นี้)
                     let unitsInCen = rows.filter(r => r[0] === "หน่วย" && r[5] === cenName);
                     let cUnitMe = unitsInCen.length;
                     let cUnitTem = unitsInCen.filter(r => cleanNumber(r[7]) >= 2500).length;
@@ -383,7 +377,6 @@
                     let cenTr = document.createElement('tr');
                     cenTr.className = 'bg-white hover:bg-gray-50 border-b text-center';
 
-                    // ตรวจสอบเงื่อนไขค่า H ของศูนย์ น้อยกว่า 15,000 หรือไม่
                     if (cenComm < 15000) {
                         let diffCen = 15000 - cenComm;
                         cenTr.innerHTML = `
