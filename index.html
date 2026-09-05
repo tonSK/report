@@ -118,32 +118,32 @@
     </button>
 
     <!-- Sidebar ด้านซ้าย -->
-    <aside id="sidebar" class="bg-white p-4 shadow-md w-48 flex-shrink-0 min-h-screen sticky top-0 transition-all duration-300 z-30 flex flex-col justify-between">
+    <aside id="sidebar" class="bg-[#047dc2] p-4 shadow-md w-48 flex-shrink-0 min-h-screen sticky top-0 transition-all duration-300 z-30 flex flex-col justify-between">
         <div class="space-y-4">
             <div>
                 <div class="flex items-center justify-between">
-                    <h1 class="font-bold text-[#047dc2] text-lg">Daily Report</h1>
-                    <button onclick="toggleSidebar()" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1 rounded-lg transition-colors" title="ซ่อนเมนู">
+                    <h1 class="font-bold text-white text-lg">Daily Report</h1>
+                    <button onclick="toggleSidebar()" class="text-white hover:text-gray-600 hover:bg-gray-100 p-1 rounded-lg transition-colors" title="ซ่อนเมนู">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
                         </svg>
                     </button>
                 </div>
-                <p id="sidebar-date" class="font-semibold text-gray-700 text-xs mt-1">กำลังโหลด...</p>
+                <p id="sidebar-date" class="font-semibold text-gray-300 text-xs mt-1">กำลังโหลด...</p>
             </div>
 
             <div>
                 <div class="space-y-2">
-                    <button onclick="switchTab('ranking')" id="btn-ranking" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors bg-[#047dc2] text-white">
+                    <button onclick="switchTab('ranking')" id="btn-ranking" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors bg-[#273482] text-white">
                         จัดอันดับ
                     </button>
-                    <button onclick="switchTab('regionCenter')" id="btn-regionCenter" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100">
+                    <button onclick="switchTab('regionCenter')" id="btn-regionCenter" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-300 hover:bg-[#273482]/30">
                         ภาคศูนย์
                     </button>
-                    <button onclick="switchTab('allLevels')" id="btn-allLevels" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100">
+                    <button onclick="switchTab('allLevels')" id="btn-allLevels" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-300 hover:bg-[#273482]/30">
                         ทุกระดับ
                     </button>
-                    <a href="https://98report.streamlit.app" target="_blank" class="block w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-red-500 hover:bg-gray-100">
+                    <a href="https://98report.streamlit.app" target="_blank" class="block w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-300 hover:bg-[#273482]/30">
                         📥 Import
                     </a>
                 </div>
@@ -357,11 +357,11 @@
             document.getElementById('page-ranking').classList.add('hidden');
             document.getElementById('page-regionCenter').classList.add('hidden');
             document.getElementById('page-allLevels').classList.add('hidden');
-            document.getElementById('btn-ranking').className = 'w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100';
-            document.getElementById('btn-regionCenter').className = 'w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100';
-            document.getElementById('btn-allLevels').className = 'w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100';
+            document.getElementById('btn-ranking').className = 'w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-300 hover:bg-[#273482]/30';
+            document.getElementById('btn-regionCenter').className = 'w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-300 hover:bg-[#273482]/30';
+            document.getElementById('btn-allLevels').className = 'w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-300 hover:bg-[#273482]/30';
             document.getElementById('page-' + tabName).classList.remove('hidden');
-            document.getElementById('btn-' + tabName).className = 'w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors bg-[#047dc2] text-white';
+            document.getElementById('btn-' + tabName).className = 'w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors bg-[#273482] text-white';
         }
 
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby2xxodhHNVf53AYEmSNFxBQ5HZO_1j-04n-2E12Y7OxcIpqKRw6dLYxr87pUQ4FZ-e/exec';
