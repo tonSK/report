@@ -48,13 +48,25 @@ def extract_lines(file_obj):
     all_lines = []
     with pdfplumber.open(file_obj) as pdf:
         for pno, page in enumerate(pdf.pages, start=1):
-            words = page.extract_words()
-            lines = defaultdict(list)
+            words = sorted(page.extract_words(), key=lambda w: w["top"])
+            groups = []
+            current_group = []
+            current_top = None
+            # รวมคำเป็นบรรทัดเดียวกันถ้า top ใกล้กันในระยะ 3pt แทนการปัดเศษเป๊ะๆ
+            # เพราะบางไฟล์คำนำหน้าตำแหน่ง (ศูนย์/หน่วย) จะสูงกว่าตัวเลขในแถวเดียวกันเล็กน้อย
             for w in words:
-                lines[round(w["top"], 1)].append(w)
-            for top in sorted(lines):
-                ws = sorted(lines[top], key=lambda w: w["x0"])
-                all_lines.append((pno, top, ws))
+                if current_top is not None and abs(w["top"] - current_top) <= 3:
+                    current_group.append(w)
+                else:
+                    if current_group:
+                        groups.append(current_group)
+                    current_group = [w]
+                    current_top = w["top"]
+            if current_group:
+                groups.append(current_group)
+            for g in groups:
+                ws = sorted(g, key=lambda w: w["x0"])
+                all_lines.append((pno, g[0]["top"], ws))
     return all_lines
 
 
@@ -100,6 +112,12 @@ def parse_data_line(ws, current_label):
         if re.match(r"^[\d.\-/]+$", first_word):
             code = first_word
             name = rest.strip()
+
+    # บางครั้งบรรทัด "ตัวแทน" แถวแรกของกลุ่มไม่มีคำว่า "ตัวแทน" กำกับ (หลุดจากการพิมพ์)
+    # แต่รหัสตัวแทนจะเป็นตัวเลขล้วน 5 หลักเสมอ (ต่างจากรหัสศูนย์/หน่วยที่มีขีด และรหัสภาคที่มีจุด)
+    # จึงใช้รูปแบบรหัสยืนยันตำแหน่งให้แม่นกว่าการไล่ตามบรรทัดก่อนหน้าอย่างเดียว
+    if re.match(r"^\d{5}$", code):
+        label = "ตัวแทน"
 
     row = {
         "ตำแหน่ง": label, "รหัส": code, "ชื่อ-สกุล": name,
