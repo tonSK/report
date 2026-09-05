@@ -164,7 +164,6 @@
                         <h3 id="gauge-title-date" class="text-red-500 font-semibold text-xl mb-3">วันที่ -</h3>
                         <div class="relative w-full h-40 flex items-center justify-center">
                             <canvas id="gaugeChart" class="max-h-full"></canvas>
-                            <!-- แก้ไขตรงนี้: เพิ่มการแสดงเบี้ยปีแรกไว้ใต้ % -->
                             <div class="absolute inset-x-0 bottom-1 flex flex-col items-center justify-center text-center">
                                 <span id="val-n2" class="text-2xl font-bold text-[#273482] leading-tight">0%</span>  
                                 <span id="val-i2-gauge" class="text-xl font-semibold text-[#047dc2] leading-loose">0</span>     
@@ -404,7 +403,6 @@
                 document.getElementById('val-j2').innerText = j2Val.toLocaleString();
                 document.getElementById('val-m2').innerText = m2Val.toLocaleString();
                 document.getElementById('val-n2').innerText = n2Val.toFixed(2) + '%';
-                // อัปเดตค่าเบี้ยปีแรกใต้เกจวัด
                 document.getElementById('val-i2-gauge').innerText = i2Val.toLocaleString();
 
                 new Chart(document.getElementById('gaugeChart').getContext('2d'), {
@@ -457,7 +455,7 @@
                 buildRegionCenterTable('region-table-body', data.rows, i2Val, n2Val, false);
                 buildRegionCenterTable('alllevels-table-body', data.rows, i2Val, n2Val, true);
 
-                function renderFilteredTable(containerId, targetPositions, valueIndex, color, limit) {
+                function renderFilteredTable(containerId, targetPositions, valueIndex, color, limit, minThreshold) {
                     let mapData = {};
                     data.rows.forEach(row => {
                         let position = row[0]; 
@@ -482,15 +480,24 @@
                             let val = item[1];
                             let pct = (val / maxVal) * 100;
 
+                            let isCommissionCol = (valueIndex === 7);
+                            let valColorClass = "text-gray-700 font-semibold";
+                            let barColor = color;
+
+                            if (isCommissionCol && minThreshold !== undefined && val < minThreshold) {
+                                valColorClass = "text-red-600 font-bold";
+                                barColor = "rgba(39, 52, 130, 0.5)"; // สีอ่อนลง 50% (ความโปร่งใส 50%)
+                            }
+
                             html += `
                                 <tr class="hover:bg-gray-50">
                                     <td class="py-2.5 px-1 text-center font-bold text-gray-500">${rank}</td>
                                     <td class="py-2.5 pr-2 font-medium text-gray-800 truncate" title="${fullName}">${firstName}</td>
-                                    <td class="py-2.5 px-2 text-right font-semibold text-gray-700">${val.toLocaleString()}</td>
+                                    <td class="py-2.5 px-2 text-right ${valColorClass}">${val.toLocaleString()}</td>
                                     <td class="py-2.5 pl-3 w-1/2">
                                         <div class="flex items-center space-x-2 w-full">
                                             <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
-                                                <div class="h-3 rounded-full" style="width: ${pct}%; background-color: ${color};"></div>
+                                                <div class="h-3 rounded-full" style="width: ${pct}%; background-color: ${barColor};"></div>
                                             </div>
                                         </div>
                                     </td>
@@ -503,12 +510,12 @@
                     document.getElementById(containerId).innerHTML = html;
                 }
 
-                renderFilteredTable('table-regionPremium', ['ภาค', 'ภาค(GL)'], 8, '#047dc2', 3);
-                renderFilteredTable('table-regionCommission', ['ภาค', 'ภาค(GL)'], 7, '#273482', 3);
-                renderFilteredTable('table-centerPremium', 'ศูนย์', 8, '#047dc2', 5);
-                renderFilteredTable('table-centerCommission', 'ศูนย์', 7, '#273482', 5);
-                renderFilteredTable('table-unitPremium', 'หน่วย', 8, '#047dc2', 10);
-                renderFilteredTable('table-unitCommission', 'หน่วย', 7, '#273482', 10);
+                renderFilteredTable('table-regionPremium', ['ภาค', 'ภาค(GL)'], 8, '#047dc2', 3, undefined);
+                renderFilteredTable('table-regionCommission', ['ภาค', 'ภาค(GL)'], 7, '#273482', 3, 60000);   
+                renderFilteredTable('table-centerPremium', 'ศูนย์', 8, '#047dc2', 5, undefined);
+                renderFilteredTable('table-centerCommission', 'ศูนย์', 7, '#273482', 5, 15000);  
+                renderFilteredTable('table-unitPremium', 'หน่วย', 8, '#047dc2', 10, undefined);
+                renderFilteredTable('table-unitCommission', 'หน่วย', 7, '#273482', 10, 2500);    
             })
             .catch(err => console.error('Error loading data from Google Sheet:', err));
 
