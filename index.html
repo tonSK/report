@@ -6,7 +6,6 @@
     <title>Daily Report</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style> 
         body { font-family: 'Sarabun', sans-serif; } 
@@ -46,10 +45,6 @@
             box-shadow: inset 0 -1px 0 #0b2265, 0 1px 0 #0b2265 !important;
         }
 
-        #page-regionCenter .overflow-x-auto {
-            overflow-y: visible;
-        }
-
         @media print {
             @page {
                 size: A4 portrait;
@@ -60,29 +55,20 @@
                 print-color-adjust: exact !important;
             }
             body { background: white !important; }
-            header, aside, .no-print { display: none !important; }
-            main { grid-column: span 12 !important; padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; }
+            header, aside, .no-print, #open-sidebar-btn { display: none !important; }
+            main { padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; }
             .shadow, .rounded-xl { box-shadow: none !important; border-radius: 0 !important; }
             
-            #page-regionCenter:not(.hidden) {
-                display: block !important;
-                width: 100% !important;
-                height: 100vh !important;
-                max-height: 100vh !important;
-                overflow: hidden !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-            }
-
+            #page-regionCenter:not(.hidden),
             #page-allLevels:not(.hidden) {
                 display: block !important;
                 width: 100% !important;
-                height: auto !important;
+                overflow: visible !important;
             }
             
             #page-regionCenter section,
             #page-allLevels section {
-                padding: 2px !important;
+                padding: 1.25rem !important;
                 margin: 0 !important;
                 width: 100% !important;
             }
@@ -94,247 +80,254 @@
                 max-height: none !important;
             }
             
-            #page-regionCenter table {
-                font-size: 7px !important;
-                width: 100% !important;
-                table-layout: fixed !important;
-            }
-
-            #page-regionCenter th, #page-regionCenter td {
-                padding: 1px 2px !important;
-                border-left: none !important;
-                border-right: none !important;
-                border-top: none !important;
-                border-bottom: 1px solid #94a3b8 !important;
-                white-space: nowrap !important;
-                overflow: hidden !important;
-                text-overflow: ellipsis !important;
-            }
-
+            #page-regionCenter table,
             #page-allLevels table {
                 font-size: 8px !important;
                 width: 100% !important;
                 table-layout: auto !important;
             }
             
+            #page-regionCenter th, #page-regionCenter td,
             #page-allLevels th, #page-allLevels td {
-                padding: 2px 3px !important;
-                border-left: none !important;
-                border-right: none !important;
-                border-top: none !important;
                 border-bottom: 1px solid #94a3b8 !important;
                 white-space: nowrap !important;
+                padding: 2px 3px !important;
             }
             
             #page-regionCenter div[id*="title-print"],
             #page-allLevels div[id*="title-print"] {
                 display: block !important;
                 font-size: 11px !important;
-                margin-bottom: 2px !important;
+                margin-bottom: 1rem !important;
+                text-align: left !important;
             }
 
-            #page-ranking {
-                display: none !important;
-            }
-
-            thead { position: static !important; }
-            thead tr th { position: static !important; }
+            #page-ranking { display: none !important; }
+            thead { display: table-header-group !important; }
             tr { page-break-inside: avoid !important; break-inside: avoid !important; }
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 flex flex-col min-h-screen">
+<body class="bg-gray-100 text-gray-800 flex min-h-screen relative overflow-x-hidden">
 
-    <header class="bg-[#047dc2] text-white shadow-md p-4 flex justify-between items-center sticky top-0 z-50">
-        <div class="flex items-center space-x-3">
-            <button onclick="toggleSidebar()" class="bg-[#273482] hover:bg-[#1e286c] text-white p-2 rounded-lg transition-colors focus:outline-none" title="ซ่อน/แสดงเมนู">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-            </button>
-            <h1 class="text-xl font-bold">Daily Report</h1>
+    <!-- ปุ่มเปิด Sidebar เมื่อซ่อนอยู่ -->
+    <button id="open-sidebar-btn" onclick="toggleSidebar()" class="hidden fixed bottom-6 left-6 z-50 bg-[#047dc2] hover:bg-[#036096] text-white p-3 rounded-full shadow-lg transition-all duration-200 flex items-center justify-center" title="แสดงเมนู">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+    </button>
+
+    <!-- Sidebar ด้านซ้าย -->
+    <aside id="sidebar" class="bg-white p-4 shadow-md w-48 flex-shrink-0 min-h-screen sticky top-0 transition-all duration-300 z-30 flex flex-col justify-between">
+        <div class="space-y-4">
+            <div>
+                <div class="flex items-center justify-between">
+                    <h1 class="font-bold text-[#047dc2] text-lg">Daily Report</h1>
+                    <button onclick="toggleSidebar()" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1 rounded-lg transition-colors" title="ซ่อนเมนู">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                        </svg>
+                    </button>
+                </div>
+                <p id="sidebar-date" class="font-semibold text-gray-700 text-xs mt-1">กำลังโหลด...</p>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">เมนู</h3>
+                <div class="space-y-2">
+                    <button onclick="switchTab('ranking')" id="btn-ranking" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors bg-[#047dc2] text-white">
+                        จัดอันดับ
+                    </button>
+                    <button onclick="switchTab('regionCenter')" id="btn-regionCenter" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100">
+                        ภาคศูนย์
+                    </button>
+                    <button onclick="switchTab('allLevels')" id="btn-allLevels" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100">
+                        ทุกระดับ
+                    </button>
+                    <a href="https://98report.streamlit.app" target="_blank" class="block w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100">
+                        Import ↗
+                    </a>
+                </div>
+            </div>
         </div>
-        <div class="text-sm bg-[#273482] px-3 py-1 rounded">
-            ณ วันที่ : <span id="report-date" class="font-semibold">กำลังโหลด...</span>
-        </div>
-    </header>
+        <div class="pt-4 text-xs text-gray-500"></div>
+    </aside>
 
-    <div class="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+    <!-- พื้นที่เนื้อหาหลักทางขวา -->
+    <main id="main-content" class="flex-1 p-6 space-y-6 transition-all duration-300 min-w-0">
 
-        <aside id="sidebar" class="bg-white p-4 rounded-xl shadow md:col-span-2 space-y-2 sticky top-20 transition-all duration-300">
-            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">เมนู</h3>
-            <button onclick="switchTab('ranking')" id="btn-ranking" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors bg-[#047dc2] text-white">
-                จัดอันดับ
-            </button>
-            <button onclick="switchTab('regionCenter')" id="btn-regionCenter" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100">
-                ภาคศูนย์
-            </button>
-            <button onclick="switchTab('allLevels')" id="btn-allLevels" class="w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100">
-                ทุกระดับ
-            </button>
-            <a href="https://98report.streamlit.app" target="_blank" class="block w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-700 hover:bg-gray-100">
-                Import ↗
-            </a>
-        </aside>
-
-        <main id="main-content" class="md:col-span-10 space-y-6 transition-all duration-300">
-
-            <div id="page-ranking" class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
-                    <div class="bg-white p-5 rounded-xl shadow flex flex-col items-center justify-center md:col-span-4">
-                        <h3 class="text-gray-600 font-semibold text-base mb-1">% เบี้ยปีแรก / ฐาน</h3>
-                        <div class="relative w-full h-40 flex items-center justify-center">
-                            <canvas id="gaugeChart" class="max-h-full"></canvas>
-                            <div class="absolute inset-x-0 bottom-2 flex items-center justify-center">
-                                <span id="val-n2" class="text-4xl font-bold text-[#273482]">0%</span>
-                            </div>
+        <!-- หน้า: จัดอันดับ -->
+        <div id="page-ranking" class="space-y-6 w-full">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div class="bg-white p-5 rounded-xl shadow flex flex-col items-center justify-center md:col-span-4">
+                    <h3 id="gauge-title-date" class="text-gray-600 font-semibold text-base mb-1">วันที่ -</h3>
+                    <div class="relative w-full h-40 flex items-center justify-center">
+                        <canvas id="gaugeChart" class="max-h-full"></canvas>
+                        <div class="absolute inset-x-0 bottom-2 flex items-center justify-center">
+                            <span id="val-n2" class="text-4xl font-bold text-[#273482]">0%</span>
                         </div>
-                    </div>
-                    <div class="bg-white p-5 rounded-xl shadow flex flex-col justify-center space-y-4 md:col-span-3">
-                        <div class="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-600">
-                            <p class="text-sm font-medium text-gray-600">เบี้ยปีแรก</p>
-                            <p id="val-i2" class="text-2xl font-bold text-blue-900">0</p>
-                        </div>
-                        <div class="bg-gray-50 p-3 rounded-lg border-l-4 border-gray-500">
-                            <p class="text-sm font-medium text-gray-600">ฐานเบี้ยปีแรก</p>
-                            <p id="val-m2" class="text-2xl font-bold text-gray-700">0</p>
-                        </div>
-                    </div>
-                    <div class="bg-white p-5 rounded-xl shadow flex items-center justify-between md:col-span-5">
-                        <div class="w-44 h-44 flex-shrink-0">
-                            <canvas id="pieChart"></canvas>
-                        </div>
-                        <div id="pie-legend-custom" class="flex flex-col justify-center space-y-1.5 pl-4 text-sm overflow-hidden"></div>
                     </div>
                 </div>
-
-                <section class="bg-white p-5 rounded-xl shadow">
-                    <h2 class="text-xl font-bold text-[#273482] mb-4 border-b pb-2">ภาค : 3 อันดับแรก</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div><h4 class="text-base font-bold text-gray-700 mb-2">เบี้ยปีแรก</h4><canvas id="regionPremiumChart" height="70"></canvas></div>
-                        <div><h4 class="text-base font-bold text-gray-700 mb-2">ค่าบำเหน็จ</h4><canvas id="regionCommissionChart" height="70"></canvas></div>
+                <div class="bg-white p-5 rounded-xl shadow flex flex-col justify-center space-y-4 md:col-span-3">
+                    <div class="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-600">
+                        <p class="text-sm font-medium text-gray-600">เบี้ยปีแรก</p>
+                        <p id="val-i2" class="text-2xl font-bold text-blue-900">0</p>
                     </div>
-                </section>
-
-                <section class="bg-white p-5 rounded-xl shadow">
-                    <h2 class="text-xl font-bold text-[#273482] mb-4 border-b pb-2">ศูนย์ : 5 อันดับแรก</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div><h4 class="text-base font-bold text-gray-700 mb-2">เบี้ยปีแรก</h4><canvas id="centerPremiumChart" height="100"></canvas></div>
-                        <div><h4 class="text-base font-bold text-gray-700 mb-2">ค่าบำเหน็จ</h4><canvas id="centerCommissionChart" height="100"></canvas></div>
+                    <div class="bg-gray-50 p-3 rounded-lg border-l-4 border-gray-500">
+                        <p class="text-sm font-medium text-gray-600">ฐานเบี้ยปีแรก</p>
+                        <p id="val-m2" class="text-2xl font-bold text-gray-700">0</p>
                     </div>
-                </section>
-
-                <section class="bg-white p-5 rounded-xl shadow">
-                    <h2 class="text-xl font-bold text-[#273482] mb-4 border-b pb-2">หน่วย : 10 อันดับแรก</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div><h4 class="text-base font-bold text-gray-700 mb-2">เบี้ยปีแรก</h4><canvas id="unitPremiumChart" height="200"></canvas></div>
-                        <div><h4 class="text-base font-bold text-gray-700 mb-2">ค่าบำเหน็จ</h4><canvas id="unitCommissionChart" height="200"></canvas></div>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow flex items-center justify-between md:col-span-5">
+                    <div class="w-44 h-44 flex-shrink-0">
+                        <canvas id="pieChart"></canvas>
                     </div>
-                </section>
+                    <div id="pie-legend-custom" class="flex flex-col justify-center space-y-1.5 pl-4 text-sm overflow-hidden"></div>
+                </div>
             </div>
 
-            <div id="page-regionCenter" class="space-y-6 hidden">
-                <section class="bg-white p-6 rounded-xl shadow">
-                    <div class="flex justify-between items-center mb-6 no-print">
-                        <div id="region-table-title" class="text-xl font-bold text-[#273482]">
-                            สรุปผลงานฝ่ายขยายงานภูมิภาค 98 ณ วันที่ -
-                        </div>
-                        <button onclick="window.print()" class="bg-[#047dc2] hover:bg-[#036096] text-white p-2 rounded-lg font-medium shadow transition-colors flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </button>
+            <section class="bg-white p-5 rounded-xl shadow">
+                <h2 class="text-xl font-bold text-[#273482] mb-4 pb-2">ภาค : 3 อันดับแรก</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="text-base font-bold text-gray-700 mb-2">เบี้ยปีแรก</h4>
+                        <div id="table-regionPremium" class="overflow-x-auto"></div>
                     </div>
-                    <div id="region-table-title-print" class="text-center text-xl font-bold text-[#273482] mb-6 hidden">
+                    <div>
+                        <h4 class="text-base font-bold text-gray-700 mb-2">คอมมิชชั่น</h4>
+                        <div id="table-regionCommission" class="overflow-x-auto"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bg-white p-5 rounded-xl shadow">
+                <h2 class="text-xl font-bold text-[#273482] mb-4 pb-2">ศูนย์ : 5 อันดับแรก</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="text-base font-bold text-gray-700 mb-2">เบี้ยปีแรก</h4>
+                        <div id="table-centerPremium" class="overflow-x-auto"></div>
+                    </div>
+                    <div>
+                        <h4 class="text-base font-bold text-gray-700 mb-2">คอมมิชชั่น</h4>
+                        <div id="table-centerCommission" class="overflow-x-auto"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bg-white p-5 rounded-xl shadow">
+                <h2 class="text-xl font-bold text-[#273482] mb-4 pb-2">หน่วย : 10 อันดับแรก</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="text-base font-bold text-gray-700 mb-2">เบี้ยปีแรก</h4>
+                        <div id="table-unitPremium" class="overflow-x-auto"></div>
+                    </div>
+                    <div>
+                        <h4 class="text-base font-bold text-gray-700 mb-2">คอมมิชชั่น</h4>
+                        <div id="table-unitCommission" class="overflow-x-auto"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- หน้า: ภาคศูนย์ -->
+        <div id="page-regionCenter" class="hidden w-full">
+            <section class="bg-white p-5 rounded-xl shadow w-full">
+                <div class="flex justify-between items-center mb-4 no-print">
+                    <div id="region-table-title" class="text-xl font-bold text-[#273482]">
                         สรุปผลงานฝ่ายขยายงานภูมิภาค 98 ณ วันที่ -
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm custom-horizontal-table">
-                            <thead>
-                                <tr class="bg-[#0b2265] text-white text-center">
-                                    <th rowspan="2" class="py-3 px-3 w-1/4">ชื่อ สกุล</th>
-                                    <th colspan="2" class="py-1.5 px-2">ผลงาน</th>
-                                    <th colspan="4" class="py-1.5 px-2">บริหารหน่วย</th>
-                                    <th colspan="4" class="py-1.5 px-2">บริหารศูนย์</th>
-                                </tr>
-                                <tr class="bg-[#0b2265] text-white text-center text-xs">
-                                    <th class="py-1.5 px-2">เบี้ยปีแรก</th>
-                                    <th class="py-1.5 px-2">ค่าบำเหน็จ</th>
-                                    <th class="py-1.5 px-2">มี</th>
-                                    <th class="py-1.5 px-2">เต็ม</th>
-                                    <th class="py-1.5 px-2">ตก</th>
-                                    <th class="py-1.5 px-2">%</th>
-                                    <th class="py-1.5 px-2">มี</th>
-                                    <th class="py-1.5 px-2">เต็ม</th>
-                                    <th class="py-1.5 px-2">ตก</th>
-                                    <th class="py-1.5 px-2">%</th>
-                                </tr>
-                            </thead>
-                            <tbody id="region-table-body"></tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
+                    <button onclick="window.print()" class="bg-[#047dc2] hover:bg-[#036096] text-white p-2 rounded-lg font-medium shadow transition-colors flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="region-table-title-print" class="text-xl font-bold text-[#273482] mb-4 hidden">
+                    สรุปผลงานฝ่ายขยายงานภูมิภาค 98 ณ วันที่ -
+                </div>
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full text-sm custom-horizontal-table min-w-[850px]">
+                        <thead>
+                            <tr class="bg-[#0b2265] text-white text-center">
+                                <th rowspan="2" class="py-3 px-3 w-[28%]">ชื่อ สกุล</th>
+                                <th colspan="2" class="py-1.5 px-2">ผลงาน</th>
+                                <th colspan="4" class="py-1.5 px-2">บริหารหน่วย</th>
+                                <th colspan="4" class="py-1.5 px-2">บริหารศูนย์</th>
+                            </tr>
+                            <tr class="bg-[#0b2265] text-white text-center text-xs">
+                                <th class="py-1.5 px-2">เบี้ยปีแรก</th>
+                                <th class="py-1.5 px-2">ค่าบำเหน็จ</th>
+                                <th class="py-1.5 px-2">มี</th>
+                                <th class="py-1.5 px-2">เต็ม</th>
+                                <th class="py-1.5 px-2">ตก</th>
+                                <th class="py-1.5 px-2">%</th>
+                                <th class="py-1.5 px-2">มี</th>
+                                <th class="py-1.5 px-2">เต็ม</th>
+                                <th class="py-1.5 px-2">ตก</th>
+                                <th class="py-1.5 px-2">%</th>
+                            </tr>
+                        </thead>
+                        <tbody id="region-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
 
-            <div id="page-allLevels" class="space-y-6 hidden">
-                <section class="bg-white p-6 rounded-xl shadow">
-                    <div class="flex justify-between items-center mb-6 no-print">
-                        <div id="alllevels-table-title" class="text-xl font-bold text-[#273482]">
-                            สรุปผลงานฝ่ายขยายงานภูมิภาค 98 ณ วันที่ -
-                        </div>
-                        <button onclick="window.print()" class="bg-[#047dc2] hover:bg-[#036096] text-white p-2 rounded-lg font-medium shadow transition-colors flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </button>
-                    </div>
-                    <div id="alllevels-table-title-print" class="text-center text-xl font-bold text-[#273482] mb-6 hidden">
+        <!-- หน้า: ทุกระดับ -->
+        <div id="page-allLevels" class="hidden w-full">
+            <section class="bg-white p-5 rounded-xl shadow w-full">
+                <div class="flex justify-between items-center mb-4 no-print">
+                    <div id="alllevels-table-title" class="text-xl font-bold text-[#273482]">
                         สรุปผลงานฝ่ายขยายงานภูมิภาค 98 ณ วันที่ -
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm custom-horizontal-table min-w-[800px]">
-                            <thead>
-                                <tr class="bg-[#0b2265] text-white text-center">
-                                    <th rowspan="2" class="py-3 px-3 w-1/4">ชื่อ สกุล</th>
-                                    <th colspan="2" class="py-1.5 px-2">ผลงาน</th>
-                                    <th colspan="4" class="py-1.5 px-2">บริหารหน่วย</th>
-                                    <th colspan="4" class="py-1.5 px-2">บริหารศูนย์</th>
-                                </tr>
-                                <tr class="bg-[#0b2265] text-white text-center text-xs">
-                                    <th class="py-1.5 px-2">เบี้ยปีแรก</th>
-                                    <th class="py-1.5 px-2">ค่าบำเหน็จ</th>
-                                    <th class="py-1.5 px-2">มี</th>
-                                    <th class="py-1.5 px-2">เต็ม</th>
-                                    <th class="py-1.5 px-2">ตก</th>
-                                    <th class="py-1.5 px-2">%</th>
-                                    <th class="py-1.5 px-2">มี</th>
-                                    <th class="py-1.5 px-2">เต็ม</th>
-                                    <th class="py-1.5 px-2">ตก</th>
-                                    <th class="py-1.5 px-2">%</th>
-                                </tr>
-                            </thead>
-                            <tbody id="alllevels-table-body"></tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
+                    <button onclick="window.print()" class="bg-[#047dc2] hover:bg-[#036096] text-white p-2 rounded-lg font-medium shadow transition-colors flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="alllevels-table-title-print" class="text-xl font-bold text-[#273482] mb-4 hidden">
+                    สรุปผลงานฝ่ายขยายงานภูมิภาค 98 ณ วันที่ -
+                </div>
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full text-sm custom-horizontal-table min-w-[850px]">
+                        <thead>
+                            <tr class="bg-[#0b2265] text-white text-center">
+                                <th rowspan="2" class="py-3 px-3 w-[28%]">ชื่อ สกุล</th>
+                                <th colspan="2" class="py-1.5 px-2">ผลงาน</th>
+                                <th colspan="4" class="py-1.5 px-2">บริหารหน่วย</th>
+                                <th colspan="4" class="py-1.5 px-2">บริหารศูนย์</th>
+                            </tr>
+                            <tr class="bg-[#0b2265] text-white text-center text-xs">
+                                <th class="py-1.5 px-2">เบี้ยปีแรก</th>
+                                <th class="py-1.5 px-2">ค่าบำเหน็จ</th>
+                                <th class="py-1.5 px-2">มี</th>
+                                <th class="py-1.5 px-2">เต็ม</th>
+                                <th class="py-1.5 px-2">ตก</th>
+                                <th class="py-1.5 px-2">%</th>
+                                <th class="py-1.5 px-2">มี</th>
+                                <th class="py-1.5 px-2">เต็ม</th>
+                                <th class="py-1.5 px-2">ตก</th>
+                                <th class="py-1.5 px-2">%</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alllevels-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
 
-        </main>
-
-    </div>
+    </main>
 
     <script>
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('main-content');
-            if (sidebar.classList.contains('hidden')) {
-                sidebar.classList.remove('hidden');
-                mainContent.classList.remove('md:col-span-12');
-                mainContent.classList.add('md:col-span-10');
+            if (sidebar.style.display === 'none') {
+                sidebar.style.display = 'flex';
+                document.getElementById('open-sidebar-btn').classList.add('hidden');
             } else {
-                sidebar.classList.add('hidden');
-                mainContent.classList.remove('md:col-span-10');
-                mainContent.classList.add('md:col-span-12');
+                sidebar.style.display = 'none';
+                document.getElementById('open-sidebar-btn').classList.remove('hidden');
             }
         }
 
@@ -352,7 +345,6 @@
         function getFirstName(fullName) {
             if (!fullName) return '';
             let cleaned = String(fullName).trim();
-            // ตัดคำนำหน้าหรือตัวเลขนำหน้าออกเผื่อมี เช่น "1 ธีร..." หรือ "ฝ่าย ..."
             cleaned = cleaned.replace(/^[0-9]+\s*/, '');
             let parts = cleaned.split(/\s+/);
             return parts[0] || cleaned;
@@ -383,7 +375,8 @@
             .then(data => {
                 let rawDate = data.summary.dateColumnHeader || '';
                 let formattedDate = formatThaiDate(rawDate);
-                document.getElementById('report-date').innerText = formattedDate;
+                document.getElementById('sidebar-date').innerText = formattedDate;
+                document.getElementById('gauge-title-date').innerText = `วันที่ ${formattedDate}`;
                 
                 let titleText = `สรุปผลงานฝ่ายขยายงานภูมิภาค 98 ณ วันที่ ${formattedDate}`;
                 document.getElementById('region-table-title').innerText = titleText;
@@ -426,7 +419,7 @@
                         labels: sortedPie.map(item => item[0]),
                         datasets: [{ data: sortedPie.map(item => item[1]), backgroundColor: pieColors }]
                     },
-                    options: { plugins: { legend: { display: false }, datalabels: { display: false } } }
+                    options: { plugins: { legend: { display: false } } }
                 });
 
                 let legendContainer = document.getElementById('pie-legend-custom');
@@ -449,7 +442,7 @@
                 buildRegionCenterTable('region-table-body', data.rows, i2Val, n2Val, false);
                 buildRegionCenterTable('alllevels-table-body', data.rows, i2Val, n2Val, true);
 
-                function renderFilteredChart(canvasId, targetPositions, valueIndex, color, limit) {
+                function renderFilteredTable(containerId, targetPositions, valueIndex, color, limit) {
                     let mapData = {};
                     data.rows.forEach(row => {
                         let position = row[0]; 
@@ -459,56 +452,48 @@
                         if(isMatch && name) { mapData[name] = (mapData[name] || 0) + val; }
                     });
                     let sorted = Object.entries(mapData).sort((a,b) => b[1] - a[1]).slice(0, limit);
-                    
-                    return new Chart(document.getElementById(canvasId).getContext('2d'), {
-                        type: 'bar',
-                        data: {
-                            labels: sorted.map(i => i[0]),
-                            datasets: [{ data: sorted.map(i => i[1]), backgroundColor: color, borderRadius: 4 }]
-                        },
-                        options: {
-                            indexAxis: 'y',
-                            responsive: true,
-                            maintainAspectRatio: true,
-                            layout: {
-                                padding: {
-                                    left: 10,
-                                    right: 20
-                                }
-                            },
-                            plugins: { 
-                                legend: { display: false },
-                                datalabels: {
-                                    anchor: 'start', 
-                                    align: 'end',
-                                    formatter: (value, context) => {
-                                        let fullName = context.chart.data.labels[context.dataIndex];
-                                        let firstName = getFirstName(fullName);
-                                        return firstName + '  (' + value.toLocaleString() + ')';
-                                    },
-                                    font: { weight: 'bold', size: 11 }, 
-                                    color: '#ffffff' 
-                                }
-                            },
-                            scales: { 
-                                x: { display: false, grid: { display: false } }, 
-                                y: { 
-                                    display: false,
-                                    grid: { display: false }, 
-                                    ticks: { display: false }
-                                } 
-                            }
-                        },
-                        plugins: [ChartDataLabels]
-                    });
+                    let maxVal = sorted.length > 0 ? Math.max(...sorted.map(i => i[1])) : 1;
+                    if (maxVal === 0) maxVal = 1;
+
+                    let html = `<table class="w-full text-sm"><tbody class="divide-y divide-gray-100">`;
+
+                    if (sorted.length === 0) {
+                        html += `<tr><td colspan="4" class="text-center py-3 text-gray-400">ไม่มีข้อมูล</td></tr>`;
+                    } else {
+                        sorted.forEach((item, index) => {
+                            let rank = index + 1;
+                            let fullName = item[0];
+                            let firstName = getFirstName(fullName);
+                            let val = item[1];
+                            let pct = (val / maxVal) * 100;
+
+                            html += `
+                                <tr class="hover:bg-gray-50">
+                                    <td class="py-2.5 px-1 text-center font-bold text-gray-500">${rank}</td>
+                                    <td class="py-2.5 pr-2 font-medium text-gray-800 truncate" title="${fullName}">${firstName}</td>
+                                    <td class="py-2.5 px-2 text-right font-semibold text-gray-700">${val.toLocaleString()}</td>
+                                    <td class="py-2.5 pl-3 w-1/2">
+                                        <div class="flex items-center space-x-2 w-full">
+                                            <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                                                <div class="h-3 rounded-full" style="width: ${pct}%; background-color: ${color};"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+
+                    html += `</tbody></table>`;
+                    document.getElementById(containerId).innerHTML = html;
                 }
 
-                renderFilteredChart('regionPremiumChart', ['ภาค', 'ภาค(GL)'], 8, '#047dc2', 3);
-                renderFilteredChart('regionCommissionChart', ['ภาค', 'ภาค(GL)'], 7, '#273482', 3);
-                renderFilteredChart('centerPremiumChart', 'ศูนย์', 8, '#047dc2', 5);
-                renderFilteredChart('centerCommissionChart', 'ศูนย์', 7, '#273482', 5);
-                renderFilteredChart('unitPremiumChart', 'หน่วย', 8, '#047dc2', 10);
-                renderFilteredChart('unitCommissionChart', 'หน่วย', 7, '#273482', 10);
+                renderFilteredTable('table-regionPremium', ['ภาค', 'ภาค(GL)'], 8, '#047dc2', 3);
+                renderFilteredTable('table-regionCommission', ['ภาค', 'ภาค(GL)'], 7, '#273482', 3);
+                renderFilteredTable('table-centerPremium', 'ศูนย์', 8, '#047dc2', 5);
+                renderFilteredTable('table-centerCommission', 'ศูนย์', 7, '#273482', 5);
+                renderFilteredTable('table-unitPremium', 'หน่วย', 8, '#047dc2', 10);
+                renderFilteredTable('table-unitCommission', 'หน่วย', 7, '#273482', 10);
             })
             .catch(err => console.error('Error loading data from Google Sheet:', err));
 
@@ -520,12 +505,14 @@
             let totalCommissionSummary = regions.reduce((sum, reg) => sum + cleanNumber(reg[7]), 0);
 
             let allUnits = rows.filter(r => r[0] === "หน่วย");
+            let allCenters = rows.filter(r => r[0] === "ศูนย์");
+            let allAgents = rows.filter(r => r[0] === "ตัวแทน");
+
             let totalUnitMe = allUnits.length;
             let totalUnitTem = allUnits.filter(r => cleanNumber(r[7]) >= 2500).length;
             let totalUnitTok = totalUnitMe - totalUnitTem;
             let totalUnitPct = totalUnitMe > 0 ? ((totalUnitTem / totalUnitMe) * 100).toFixed(1) + '%' : '0.0%';
 
-            let allCenters = rows.filter(r => r[0] === "ศูนย์");
             let totalCenMe = allCenters.length;
             let totalCenTem = allCenters.filter(r => cleanNumber(r[7]) >= 15000).length;
             let totalCenTok = totalCenMe - totalCenTem;
@@ -539,12 +526,12 @@
                 <td class="py-2.5 px-2 text-right">${totalCommissionSummary.toLocaleString()}</td>
                 <td class="py-2.5 px-2 text-center">${totalUnitMe}</td>
                 <td class="py-2.5 px-2 text-center">${totalUnitTem}</td>
-                <td class="py-2.5 px-2 text-center text-red-400">${totalUnitTok}</td>
-                <td class="py-2.5 px-2 text-center text-red-400">${totalUnitPct}</td>
+                <td class="py-2.5 px-2 text-center text-red-300">${totalUnitTok}</td>
+                <td class="py-2.5 px-2 text-center text-red-300">${totalUnitPct}</td>
                 <td class="py-2.5 px-2 text-center">${totalCenMe}</td>
                 <td class="py-2.5 px-2 text-center">${totalCenTem}</td>
-                <td class="py-2.5 px-2 text-center text-red-400">${totalCenTok}</td>
-                <td class="py-2.5 px-2 text-center text-red-400">${totalCenPct}</td>
+                <td class="py-2.5 px-2 text-center text-red-300">${totalCenTok}</td>
+                <td class="py-2.5 px-2 text-center text-red-300">${totalCenPct}</td>
             `;
             tbody.appendChild(summaryTr);
 
@@ -555,13 +542,13 @@
                 let regPrem = cleanNumber(reg[8]); 
                 let regComm = cleanNumber(reg[7]); 
 
-                let centers = rows.filter(r => r[0] === "ศูนย์" && r[4] === regName);
+                let centers = allCenters.filter(r => r[4] === regName);
                 let cenMe = centers.length;
                 let cenTem = centers.filter(r => cleanNumber(r[7]) >= 15000).length;
                 let cenTok = cenMe - cenTem;
                 let cenPct = cenMe > 0 ? ((cenTem / cenMe) * 100).toFixed(1) + '%' : '0.0%';
 
-                let unitsInReg = rows.filter(r => r[0] === "หน่วย" && r[4] === regName);
+                let unitsInReg = allUnits.filter(r => r[4] === regName);
                 let unitMe = unitsInReg.length;
                 let unitTem = unitsInReg.filter(r => cleanNumber(r[7]) >= 2500).length;
                 let unitTok = unitMe - unitTem;
@@ -570,7 +557,7 @@
                 let regTr = document.createElement('tr');
                 regTr.className = 'bg-[#047dc2] text-white font-bold text-center';
                 
-                let regCommClass = regComm < 60000 ? 'py-2 px-2 text-right text-red-400 font-bold' : 'py-2 px-2 text-right';
+                let regCommClass = regComm < 60000 ? 'py-2 px-2 text-right text-red-300 font-bold' : 'py-2 px-2 text-right';
 
                 regTr.innerHTML = `
                     <td class="py-2 px-3 text-left">${index + 1} ${regName}</td>
@@ -578,12 +565,12 @@
                     <td class="${regCommClass}">${regComm.toLocaleString()}</td>
                     <td class="py-2 px-2 text-center">${unitMe}</td>
                     <td class="py-2 px-2 text-center">${unitTem}</td>
-                    <td class="py-2 px-2 text-center text-red-400">${unitTok}</td>
-                    <td class="py-2 px-2 text-center text-red-400">${unitPct}</td>
+                    <td class="py-2 px-2 text-center text-red-300">${unitTok}</td>
+                    <td class="py-2 px-2 text-center text-red-300">${unitPct}</td>
                     <td class="py-2 px-2 text-center">${cenMe}</td>
                     <td class="py-2 px-2 text-center">${cenTem}</td>
-                    <td class="py-2 px-2 text-center text-red-400">${cenTok}</td>
-                    <td class="py-2 px-2 text-center text-red-400">${cenPct}</td>
+                    <td class="py-2 px-2 text-center text-red-300">${cenTok}</td>
+                    <td class="py-2 px-2 text-center text-red-300">${cenPct}</td>
                 `;
                 tbody.appendChild(regTr);
 
@@ -594,7 +581,7 @@
                     let cenPrem = cleanNumber(cen[8]); 
                     let cenComm = cleanNumber(cen[7]); 
                     
-                    let unitsInCen = rows.filter(r => r[0] === "หน่วย" && r[5] === cenName);
+                    let unitsInCen = allUnits.filter(r => r[5] === cenName);
                     let cUnitMe = unitsInCen.length;
                     let cUnitTem = unitsInCen.filter(r => cleanNumber(r[7]) >= 2500).length;
                     let cUnitTok = cUnitMe - cUnitTem;
@@ -662,7 +649,7 @@
                             `;
                             tbody.appendChild(unitTr);
 
-                            let agentsInUnit = rows.filter(r => r[0] === "ตัวแทน" && r[6] === unitName);
+                            let agentsInUnit = allAgents.filter(r => r[6] === unitName);
                             agentsInUnit.sort((a, b) => cleanNumber(b[8]) - cleanNumber(a[8]));
 
                             agentsInUnit.forEach((agent, aIdx) => {
