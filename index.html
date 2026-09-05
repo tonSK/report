@@ -156,36 +156,38 @@
     <main id="main-content" class="flex-1 p-6 space-y-6 transition-all duration-300 min-w-0">
 
         <!-- หน้า: จัดอันดับ -->
-        <div id="page-ranking" class="space-y-6 w-full">
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
-                <div class="bg-white p-5 rounded-xl shadow flex flex-col items-center justify-center md:col-span-4">
-                    <h3 id="gauge-title-date" class="text-gray-600 font-semibold text-base mb-1">วันที่ -</h3>
-                    <div class="relative w-full h-40 flex items-center justify-center">
-                        <canvas id="gaugeChart" class="max-h-full"></canvas>
-                        <div class="absolute inset-x-0 bottom-2 flex items-center justify-center">
-                            <span id="val-n2" class="text-3xl font-bold text-[#273482]">0%</span>
+        <div id="page-ranking" class="w-full">
+            <div class="bg-white p-5 rounded-xl shadow space-y-6">
+                <!-- ส่วนบน: เกจ, ตัวเลขสรุป, กราฟวงกลม -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center pb-6 border-b border-gray-100">
+                    <div class="flex flex-col items-center justify-center md:col-span-4 border-b md:border-b-0 md:border-r border-gray-100 pb-4 md:pb-0">
+                        <h3 id="gauge-title-date" class="text-gray-600 font-semibold text-base mb-1">วันที่ -</h3>
+                        <div class="relative w-full h-40 flex items-center justify-center">
+                            <canvas id="gaugeChart" class="max-h-full"></canvas>
+                            <div class="absolute inset-x-0 bottom-2 flex items-center justify-center">
+                                <span id="val-n2" class="text-3xl font-bold text-[#273482]">0%</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="bg-white p-5 rounded-xl shadow flex flex-col justify-center space-y-4 md:col-span-3">
-                    <div class="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-600">
-                        <p class="text-sm font-medium text-gray-600">เบี้ยปีแรก</p>
-                        <p id="val-i2" class="text-2xl font-bold text-blue-900">0</p>
+                    <div class="flex flex-col justify-center space-y-4 md:col-span-3 border-b md:border-b-0 md:border-r border-gray-100 pb-4 md:pb-0 md:pr-4">
+                        <div class="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-600">
+                            <p class="text-sm font-medium text-gray-600">เบี้ยปีแรก</p>
+                            <p id="val-i2" class="text-2xl font-bold text-blue-900">0</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-lg border-l-4 border-gray-500">
+                            <p class="text-sm font-medium text-gray-600">ฐานเบี้ยปีแรก</p>
+                            <p id="val-m2" class="text-2xl font-bold text-gray-700">0</p>
+                        </div>
                     </div>
-                    <div class="bg-gray-50 p-3 rounded-lg border-l-4 border-gray-500">
-                        <p class="text-sm font-medium text-gray-600">ฐานเบี้ยปีแรก</p>
-                        <p id="val-m2" class="text-2xl font-bold text-gray-700">0</p>
+                    <div class="flex items-center justify-start space-x-3 md:col-span-5">
+                        <div class="w-40 h-40 flex-shrink-0">
+                            <canvas id="pieChart"></canvas>
+                        </div>
+                        <div id="pie-legend-custom" class="flex flex-col justify-center space-y-1.5 text-sm overflow-hidden flex-1"></div>
                     </div>
                 </div>
-                <div class="bg-white p-5 rounded-xl shadow flex items-center justify-between md:col-span-5">
-                    <div class="w-44 h-44 flex-shrink-0">
-                        <canvas id="pieChart"></canvas>
-                    </div>
-                    <div id="pie-legend-custom" class="flex flex-col justify-center space-y-1.5 pl-4 text-sm overflow-hidden"></div>
-                </div>
-            </div>
 
-            <section class="bg-white p-5 rounded-xl shadow">
+                <!-- ส่วนล่าง: ตารางจัดอันดับ (ภาค, ศูนย์, หน่วย) -->
                 <div class="grid grid-cols-1 gap-6">
                     <div>
                         <h3 class="text-lg font-bold text-[#273482] mb-3">ภาค : 3 อันดับแรก</h3>
@@ -229,7 +231,7 @@
                         </div>
                     </div>
                 </div>
-            </section>
+            </div>
         </div>
 
         <!-- หน้า: ภาคศูนย์ -->
