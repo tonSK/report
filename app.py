@@ -256,10 +256,24 @@ DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1fYTibLa8riOyUPzPiu_
 
 sheet_url = st.text_input("ลิงก์ Google Sheet ปลายทาง", value=DEFAULT_SHEET_URL)
 worksheet_name = st.text_input("ชื่อชีต (tab) ที่จะเขียนข้อมูลลง", value="Import")
-uploaded_file = st.file_uploader("เลือกไฟล์ PDF รายงานเบี้ยประกัน", type=["pdf"])
+
+# ใช้ตัวนับต่อท้าย key ของ file_uploader เพื่อให้ปุ่ม Clear
+# สามารถ "รีเซ็ต" ไฟล์ที่แนบไว้ได้ (เปลี่ยน key ทำให้ widget เริ่มใหม่)
+if "uploader_generation" not in st.session_state:
+    st.session_state["uploader_generation"] = 0
+gen = st.session_state["uploader_generation"]
+
+uploaded_file = st.file_uploader(
+    "เลือกไฟล์ PDF รายงานเบี้ยประกัน",
+    type=["pdf"],
+    accept_multiple_files=False,
+    key=f"pdf_uploader_{gen}",
+)
 uploaded_xlsx = st.file_uploader(
-    "แนบไฟล์ xlsx ประกอบ (ไม่บังคับ — ต้องอัปโหลดคู่กับหรือหลังไฟล์ PDF เท่านั้น)",
+    "แนบไฟล์ xlsx ประกอบ (ไม่บังคับ — ต้องมีข้อมูลใน Import จากไฟล์ PDF อยู่ก่อนแล้ว)",
     type=["xlsx"],
+    accept_multiple_files=False,
+    key=f"xlsx_uploader_{gen}",
 )
 
 
@@ -300,7 +314,6 @@ def process_and_write(file, target_sheet_url, target_worksheet_name):
 
                 st.success("เขียนเข้า Google Sheet เรียบร้อยแล้ว ✅")
                 st.markdown(f"[เปิด Google Sheet]({target_sheet_url})")
-                st.session_state["pdf_ready"] = True
             except Exception as e:
                 st.error(f"เขียนเข้า Google Sheet ไม่สำเร็จ: {e}")
     else:
@@ -323,7 +336,7 @@ def process_xlsx_merge(xlsx_file, target_sheet_url, target_worksheet_name):
     # อ่านข้อมูลปัจจุบันในชีต Import เพื่อหาว่าแต่ละแถวอยู่บรรทัดไหน
     existing = ws.get_all_values()
     if len(existing) < 2:
-        st.warning("ยังไม่มีข้อมูลใน Import — กรุณาอัปโหลดไฟล์ PDF ก่อน")
+        st.warning("ยังไม่มีข้อมูลใน Import — กรุณาแนบไฟล์ PDF คู่กัน หรืออัปโหลด PDF ก่อน")
         return
 
     header = existing[0]
@@ -365,43 +378,28 @@ def is_allowed_filename(filename):
     return any(kw in lower for kw in ALLOWED_FILENAME_KEYWORDS)
 
 
-if uploaded_file:
-    if not is_allowed_filename(uploaded_file.name):
-        st.error(
-            "ชื่อไฟล์นี้ไม่ตรงรูปแบบที่รองรับ — ต้องมีคำว่า \"monthpremium\" หรือ "
-            "\"Lalldailypremium\" อยู่ในชื่อไฟล์ ระบบจะไม่ประมวลผลไฟล์นี้"
-        )
-        st.stop()
+col_import, col_clear = st.columns(2)
+with col_import:
+    import_clicked = st.button("🚀 Import", use_container_width=True)
+with col_clear:
+    clear_clicked = st.button("🧹 Clear", use_container_width=True)
 
-    # ใช้ชื่อไฟล์+ขนาดไฟล์เป็นตัวจำ ว่าไฟล์นี้เคยประมวลผลไปแล้วหรือยัง
-    # เพื่อให้ทำงานทันทีตอนเลือกไฟล์ใหม่ โดยไม่ประมวลผลซ้ำเวลาผู้ใช้แค่แก้ช่องอื่น
-    file_key = f"{uploaded_file.name}_{uploaded_file.size}"
-    already_done = st.session_state.get("last_processed_file") == file_key
+if clear_clicked:
+    st.session_state["uploader_generation"] += 1
+    st.rerun()
 
-    if not already_done:
-        st.session_state["last_processed_file"] = file_key
-        process_and_write(uploaded_file, sheet_url, worksheet_name)
+if import_clicked:
+    if not uploaded_file and not uploaded_xlsx:
+        st.warning("กรุณาแนบไฟล์อย่างน้อย 1 ไฟล์ก่อนกด Import")
     else:
-        st.info("ไฟล์นี้ประมวลผลไปแล้ว")
-        if st.button("🔁 ส่งซ้ำอีกครั้ง"):
-            process_and_write(uploaded_file, sheet_url, worksheet_name)
+        if uploaded_file:
+            if not is_allowed_filename(uploaded_file.name):
+                st.error(
+                    "ชื่อไฟล์ PDF นี้ไม่ตรงรูปแบบที่รองรับ — ต้องมีคำว่า \"monthpremium\" หรือ "
+                    "\"Lalldailypremium\" อยู่ในชื่อไฟล์ ระบบจะไม่ประมวลผลไฟล์นี้"
+                )
+            else:
+                process_and_write(uploaded_file, sheet_url, worksheet_name)
 
-
-if uploaded_xlsx:
-    if not st.session_state.get("pdf_ready"):
-        st.error(
-            "อัปโหลดไฟล์นี้เดี่ยวๆ ไม่ได้ — ต้องอัปโหลดไฟล์ PDF รายงานเบี้ยประกันก่อน "
-            "(หรือแนบพร้อมกัน) แอปจะได้รู้ว่าจะจับคู่ข้อมูลกับแถวไหนใน Import"
-        )
-        st.stop()
-
-    xlsx_key = f"{uploaded_xlsx.name}_{uploaded_xlsx.size}"
-    xlsx_already_done = st.session_state.get("last_processed_xlsx") == xlsx_key
-
-    if not xlsx_already_done:
-        st.session_state["last_processed_xlsx"] = xlsx_key
-        process_xlsx_merge(uploaded_xlsx, sheet_url, worksheet_name)
-    else:
-        st.info("ไฟล์ xlsx นี้ประมวลผลไปแล้ว")
-        if st.button("🔁 ส่งไฟล์ xlsx ซ้ำอีกครั้ง"):
+        if uploaded_xlsx:
             process_xlsx_merge(uploaded_xlsx, sheet_url, worksheet_name)
