@@ -213,12 +213,13 @@ sheet_url = st.text_input("ลิงก์ Google Sheet ปลายทาง", 
 worksheet_name = st.text_input("ชื่อชีต (tab) ที่จะเขียนข้อมูลลง", value="Import")
 uploaded_file = st.file_uploader("เลือกไฟล์ PDF รายงานเบี้ยประกัน", type=["pdf"])
 
-if uploaded_file and st.button("🚀 แปลงและส่งเข้า Google Sheet"):
+
+def process_and_write(file, target_sheet_url, target_worksheet_name):
     with st.spinner("กำลังอ่านไฟล์ PDF..."):
-        rows = parse_pdf(uploaded_file)
+        rows = parse_pdf(file)
     st.success(f"อ่านสำเร็จ พบข้อมูล {len(rows)} แถว")
 
-    report_date = extract_date_from_filename(uploaded_file.name)
+    report_date = extract_date_from_filename(file.name)
     if report_date:
         st.info(f"วันที่ของรายงาน (จากชื่อไฟล์): {report_date}")
     else:
@@ -226,15 +227,15 @@ if uploaded_file and st.button("🚀 แปลงและส่งเข้า 
 
     st.dataframe(rows)
 
-    if sheet_url:
+    if target_sheet_url:
         with st.spinner("กำลังเขียนข้อมูลเข้า Google Sheet..."):
             try:
                 gc = get_gsheet_client()
-                sh = gc.open_by_url(sheet_url)
+                sh = gc.open_by_url(target_sheet_url)
                 try:
-                    ws = sh.worksheet(worksheet_name)
+                    ws = sh.worksheet(target_worksheet_name)
                 except gspread.WorksheetNotFound:
-                    ws = sh.add_worksheet(title=worksheet_name, rows=1000, cols=20)
+                    ws = sh.add_worksheet(title=target_worksheet_name, rows=1000, cols=20)
 
                 # ล้างข้อมูลเดิมทั้งหมดในชีตนี้ก่อนเสมอ
                 ws.clear()
@@ -249,8 +250,23 @@ if uploaded_file and st.button("🚀 แปลงและส่งเข้า 
                     ws.update(range_name="O1", values=[[report_date]])
 
                 st.success("เขียนเข้า Google Sheet เรียบร้อยแล้ว ✅")
-                st.markdown(f"[เปิด Google Sheet]({sheet_url})")
+                st.markdown(f"[เปิด Google Sheet]({target_sheet_url})")
             except Exception as e:
                 st.error(f"เขียนเข้า Google Sheet ไม่สำเร็จ: {e}")
     else:
-        st.info("ยังไม่ได้ใส่ลิงก์ Google Sheet — ดูตารางด้านบนได้เลย หรือใส่ลิงก์แล้วกดปุ่มใหม่อีกครั้ง")
+        st.info("ยังไม่ได้ใส่ลิงก์ Google Sheet — ดูตารางด้านบนได้เลย หรือใส่ลิงก์แล้วลองใหม่อีกครั้ง")
+
+
+if uploaded_file:
+    # ใช้ชื่อไฟล์+ขนาดไฟล์เป็นตัวจำ ว่าไฟล์นี้เคยประมวลผลไปแล้วหรือยัง
+    # เพื่อให้ทำงานทันทีตอนเลือกไฟล์ใหม่ โดยไม่ประมวลผลซ้ำเวลาผู้ใช้แค่แก้ช่องอื่น
+    file_key = f"{uploaded_file.name}_{uploaded_file.size}"
+    already_done = st.session_state.get("last_processed_file") == file_key
+
+    if not already_done:
+        st.session_state["last_processed_file"] = file_key
+        process_and_write(uploaded_file, sheet_url, worksheet_name)
+    else:
+        st.info("ไฟล์นี้ประมวลผลไปแล้ว")
+        if st.button("🔁 ส่งซ้ำอีกครั้ง"):
+            process_and_write(uploaded_file, sheet_url, worksheet_name)
