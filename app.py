@@ -360,7 +360,7 @@ def process_xlsx_merge(xlsx_file, target_sheet_url, target_worksheet_name):
         if key in row_lookup:
             row_num = row_lookup[key]
             try:
-                value = round(float(col_c) * 100, 2)
+                value = f"{round(float(col_c) * 100, 2):.2f}%"
             except (TypeError, ValueError):
                 value = col_c
             updates.append({"range": f"P{row_num}", "values": [[value]]})
