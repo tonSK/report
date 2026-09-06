@@ -359,7 +359,11 @@ def process_xlsx_merge(xlsx_file, target_sheet_url, target_worksheet_name):
         key = (label, match_code)
         if key in row_lookup:
             row_num = row_lookup[key]
-            updates.append({"range": f"P{row_num}", "values": [[col_c]]})
+            try:
+                value = round(float(col_c) * 100, 2)
+            except (TypeError, ValueError):
+                value = col_c
+            updates.append({"range": f"P{row_num}", "values": [[value]]})
             matched += 1
 
     if updates:
