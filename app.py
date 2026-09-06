@@ -215,17 +215,17 @@ def match_code_for_label(label, code):
 
 
 def parse_xlsx(file_obj):
-    """อ่านไฟล์ xlsx คืนค่า list of (label, match_code, colB_value)"""
+    """อ่านไฟล์ xlsx คืนค่า list of (label, match_code, colC_value)"""
     wb = openpyxl.load_workbook(file_obj, data_only=True)
     ws = wb.worksheets[0]
     result = []
     for row in ws.iter_rows(min_row=3, values_only=True):
-        col_a, col_b = row[0], row[1]
+        col_a, col_c = row[0], row[2]
         if not col_a:
             continue
         label, code, _name = parse_xlsx_col_a(str(col_a))
         match_code = match_code_for_label(label, code)
-        result.append((label, match_code, col_b))
+        result.append((label, match_code, col_c))
     return result
 
 
@@ -355,14 +355,16 @@ def process_xlsx_merge(xlsx_file, target_sheet_url, target_worksheet_name):
 
     updates = []
     matched = 0
-    for label, match_code, col_b in xlsx_rows:
+    for label, match_code, col_c in xlsx_rows:
         key = (label, match_code)
         if key in row_lookup:
             row_num = row_lookup[key]
-            updates.append({"range": f"P{row_num}", "values": [[col_b]]})
+            updates.append({"range": f"P{row_num}", "values": [[col_c]]})
             matched += 1
 
     if updates:
+        # เพิ่มหัวข้อคอลัมน์ P1
+        updates.append({"range": "P1", "values": [["%ผลบังคับ"]]})
         with st.spinner("กำลังเขียนคอลัมน์ P เข้า Google Sheet..."):
             ws.batch_update(updates)
         st.success(f"จับคู่และเขียนคอลัมน์ P สำเร็จ {matched} แถว จากทั้งหมด {len(xlsx_rows)} แถวในไฟล์ xlsx")
