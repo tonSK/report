@@ -257,7 +257,22 @@ def process_and_write(file, target_sheet_url, target_worksheet_name):
         st.info("ยังไม่ได้ใส่ลิงก์ Google Sheet — ดูตารางด้านบนได้เลย หรือใส่ลิงก์แล้วลองใหม่อีกครั้ง")
 
 
+ALLOWED_FILENAME_KEYWORDS = ("monthpremium", "lalldailypremium")
+
+
+def is_allowed_filename(filename):
+    lower = filename.lower()
+    return any(kw in lower for kw in ALLOWED_FILENAME_KEYWORDS)
+
+
 if uploaded_file:
+    if not is_allowed_filename(uploaded_file.name):
+        st.error(
+            "ชื่อไฟล์นี้ไม่ตรงรูปแบบที่รองรับ — ต้องมีคำว่า \"monthpremium\" หรือ "
+            "\"Lalldailypremium\" อยู่ในชื่อไฟล์ ระบบจะไม่ประมวลผลไฟล์นี้"
+        )
+        st.stop()
+
     # ใช้ชื่อไฟล์+ขนาดไฟล์เป็นตัวจำ ว่าไฟล์นี้เคยประมวลผลไปแล้วหรือยัง
     # เพื่อให้ทำงานทันทีตอนเลือกไฟล์ใหม่ โดยไม่ประมวลผลซ้ำเวลาผู้ใช้แค่แก้ช่องอื่น
     file_key = f"{uploaded_file.name}_{uploaded_file.size}"
