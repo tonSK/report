@@ -353,6 +353,34 @@
             return num.toFixed(2);
         }
 
+        // ฟังก์ชันจัดรูปแบบค่าผลบังคับ (คอลัมน์ P) ตามกฎเกณฑ์แต่ละตำแหน่ง
+        function formatComplianceCell(levelType, val) {
+            if (levelType === 'agent') {
+                return '-';
+            }
+            if (val === undefined || val === null || String(val).trim() === '') return '';
+            let num = Number(val);
+            if (isNaN(num)) return String(val);
+
+            let formattedText = num.toFixed(2);
+            let isRed = false;
+
+            if (levelType === 'division' || levelType === 'region') {
+                if (num < 85) {
+                    isRed = true;
+                }
+            } else if (levelType === 'center' || levelType === 'unit') {
+                if (num < 75) {
+                    isRed = true;
+                }
+            }
+
+            if (isRed) {
+                return `<span class="text-red-600 font-bold">${formattedText}</span>`;
+            }
+            return formattedText;
+        }
+
         fetch(WEB_APP_URL)
             .then(response => response.json())
             .then(data => {
@@ -500,9 +528,11 @@
             let summaryRowFromData = rows.find(r => r[0] === "ฝ่าย");
             let rawPVal = summaryRowFromData ? summaryRowFromData[15] : (dataObj && dataObj.summary ? dataObj.summary.p2 : undefined);
             let hasPCol = rawPVal !== undefined && rawPVal !== null && String(rawPVal).trim() !== '';
-            let summaryPVal = hasPCol ? formatPValue(rawPVal) : '';
+            let summaryPVal = formatComplianceCell('division', rawPVal);
+
+            // เปลี่ยนหัวข้อคอลัมน์จาก % เป็น ผลบังคับ ตามที่ร้องขอ
             let colNameWidth = hasPCol ? 'w-[26%]' : 'w-[30%]';
-            let colPWidth = hasPCol ? '<th rowspan="2" class="py-3 px-2 w-[8%]">ผลบังคับ</th>' : '';
+            let colPWidth = hasPCol ? `<th rowspan="2" class="py-3 px-2 w-[8%]">ผลบังคับ</th>` : '';
             
             thead.innerHTML = `
                 <tr class="bg-[#0b2265] text-white text-center">
@@ -568,7 +598,7 @@
                 let regName = reg[2]; 
                 let regPrem = cleanNumber(reg[8]); 
                 let regComm = cleanNumber(reg[7]); 
-                let regPVal = formatPValue(reg[15]);
+                let regPVal = formatComplianceCell('region', reg[15]);
 
                 let centers = allCenters.filter(r => r[4] === regName);
                 let cenMe = centers.length;
@@ -610,7 +640,7 @@
                     let cenName = cen[2]; 
                     let cenPrem = cleanNumber(cen[8]); 
                     let cenComm = cleanNumber(cen[7]); 
-                    let cenPVal = formatPValue(cen[15]);
+                    let cenPVal = formatComplianceCell('center', cen[15]);
                     
                     let unitsInCen = allUnits.filter(r => r[5] === cenName);
                     let cUnitMe = unitsInCen.length;
@@ -659,7 +689,7 @@
                             let unitName = unit[2];
                             let unitPrem = cleanNumber(unit[8]);
                             let unitComm = cleanNumber(unit[7]);
-                            let unitPVal = formatPValue(unit[15]);
+                            let unitPVal = formatComplianceCell('unit', unit[15]);
 
                             let unitTr = document.createElement('tr');
                             unitTr.style.backgroundColor = '#cce5f1';
@@ -696,7 +726,7 @@
                                 }
                                 let agentPrem = cleanNumber(agent[8]);
                                 let agentComm = cleanNumber(agent[7]);
-                                let agentPVal = formatPValue(agent[15]);
+                                let agentPVal = formatComplianceCell('agent', agent[15]);
 
                                 let agentTr = document.createElement('tr');
                                 agentTr.className = 'bg-white hover:bg-gray-50 text-center font-normal text-gray-700';
