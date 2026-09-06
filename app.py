@@ -1,5 +1,6 @@
 import streamlit as st
 import pdfplumber
+import openpyxl
 import re
 import json
 from collections import defaultdict
@@ -184,6 +185,50 @@ FIELDNAMES = ["ตำแหน่ง", "รหัส", "ชื่อ-สกุ�
               "ฐานเบี้ย", "%เบี้ยปีแรก/ฐาน"]
 
 
+# ---------------------------------------------------------------------------
+# ตรรกะแปลงไฟล์ xlsx ประกอบ (ต้องมาคู่กับ PDF)
+# ---------------------------------------------------------------------------
+def parse_xlsx_col_a(text):
+    """แปลงข้อความคอลัมน์ A เช่น 'ตัวแทน A07106274Z : นายพงศ์ปณต ชลชีพ'
+    ให้ได้ (ตำแหน่ง, รหัส(ตัดตัวอักษรหัวท้ายออก), ชื่อ-สกุล)"""
+    left, _, name = text.partition(":")
+    left = left.strip()
+    name = name.strip()
+    parts = left.split(None, 1)
+    label = parts[0] if parts else ""
+    code_raw = parts[1].strip() if len(parts) > 1 else ""
+    middle = code_raw
+    if middle and middle[0].isalpha():
+        middle = middle[1:]
+    if middle and middle[-1].isalpha():
+        middle = middle[:-1]
+    return label, middle, name
+
+
+def match_code_for_label(label, code):
+    """รหัสในไฟล์ xlsx ของ 'ตัวแทน' จะมีรหัสสาขานำหน้าติดมาด้วย (เช่น 07106274)
+    ให้ตัดเหลือ 5 หลักท้ายเพื่อเทียบกับรหัสตัวแทนใน Import (เช่น 06274)
+    ระดับอื่น (ฝ่าย/ภาค/ศูนย์/หน่วย) ใช้รหัสทั้งเส้นเทียบตรงๆ"""
+    if label == "ตัวแทน":
+        return code[-5:]
+    return code
+
+
+def parse_xlsx(file_obj):
+    """อ่านไฟล์ xlsx คืนค่า list of (label, match_code, colB_value)"""
+    wb = openpyxl.load_workbook(file_obj, data_only=True)
+    ws = wb.worksheets[0]
+    result = []
+    for row in ws.iter_rows(min_row=3, values_only=True):
+        col_a, col_b = row[0], row[1]
+        if not col_a:
+            continue
+        label, code, _name = parse_xlsx_col_a(str(col_a))
+        match_code = match_code_for_label(label, code)
+        result.append((label, match_code, col_b))
+    return result
+
+
 def extract_date_from_filename(filename):
     """Find a dd-mm-yy date inside the filename, e.g.
     'Lallmonthpremium31-08-69.pdf' -> '31/08/2569'."""
@@ -212,6 +257,10 @@ DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1fYTibLa8riOyUPzPiu_
 sheet_url = st.text_input("ลิงก์ Google Sheet ปลายทาง", value=DEFAULT_SHEET_URL)
 worksheet_name = st.text_input("ชื่อชีต (tab) ที่จะเขียนข้อมูลลง", value="Import")
 uploaded_file = st.file_uploader("เลือกไฟล์ PDF รายงานเบี้ยประกัน", type=["pdf"])
+uploaded_xlsx = st.file_uploader(
+    "แนบไฟล์ xlsx ประกอบ (ไม่บังคับ — ต้องอัปโหลดคู่กับหรือหลังไฟล์ PDF เท่านั้น)",
+    type=["xlsx"],
+)
 
 
 def process_and_write(file, target_sheet_url, target_worksheet_name):
@@ -251,10 +300,61 @@ def process_and_write(file, target_sheet_url, target_worksheet_name):
 
                 st.success("เขียนเข้า Google Sheet เรียบร้อยแล้ว ✅")
                 st.markdown(f"[เปิด Google Sheet]({target_sheet_url})")
+                st.session_state["pdf_ready"] = True
             except Exception as e:
                 st.error(f"เขียนเข้า Google Sheet ไม่สำเร็จ: {e}")
     else:
         st.info("ยังไม่ได้ใส่ลิงก์ Google Sheet — ดูตารางด้านบนได้เลย หรือใส่ลิงก์แล้วลองใหม่อีกครั้ง")
+
+
+def process_xlsx_merge(xlsx_file, target_sheet_url, target_worksheet_name):
+    with st.spinner("กำลังอ่านไฟล์ xlsx..."):
+        xlsx_rows = parse_xlsx(xlsx_file)
+    st.success(f"อ่านไฟล์ xlsx สำเร็จ พบข้อมูล {len(xlsx_rows)} แถว")
+
+    try:
+        gc = get_gsheet_client()
+        sh = gc.open_by_url(target_sheet_url)
+        ws = sh.worksheet(target_worksheet_name)
+    except Exception as e:
+        st.error(f"เปิด Google Sheet ไม่สำเร็จ: {e}")
+        return
+
+    # อ่านข้อมูลปัจจุบันในชีต Import เพื่อหาว่าแต่ละแถวอยู่บรรทัดไหน
+    existing = ws.get_all_values()
+    if len(existing) < 2:
+        st.warning("ยังไม่มีข้อมูลใน Import — กรุณาอัปโหลดไฟล์ PDF ก่อน")
+        return
+
+    header = existing[0]
+    try:
+        idx_pos = header.index("ตำแหน่ง")
+        idx_code = header.index("รหัส")
+    except ValueError:
+        st.error("ไม่พบคอลัมน์ ตำแหน่ง/รหัส ใน Import — ตรวจสอบว่าอัปโหลด PDF ไปแล้ว")
+        return
+
+    row_lookup = {}
+    for i, row in enumerate(existing[1:], start=2):  # แถวที่ 2 เป็นต้นไป (แถวจริงในชีต)
+        if len(row) > max(idx_pos, idx_code):
+            key = (row[idx_pos], row[idx_code].replace("-", ""))
+            row_lookup[key] = i
+
+    updates = []
+    matched = 0
+    for label, match_code, col_b in xlsx_rows:
+        key = (label, match_code)
+        if key in row_lookup:
+            row_num = row_lookup[key]
+            updates.append({"range": f"P{row_num}", "values": [[col_b]]})
+            matched += 1
+
+    if updates:
+        with st.spinner("กำลังเขียนคอลัมน์ P เข้า Google Sheet..."):
+            ws.batch_update(updates)
+        st.success(f"จับคู่และเขียนคอลัมน์ P สำเร็จ {matched} แถว จากทั้งหมด {len(xlsx_rows)} แถวในไฟล์ xlsx")
+    else:
+        st.warning("ไม่พบแถวที่จับคู่ได้เลย — ตรวจสอบว่าอัปโหลด PDF เดือนเดียวกันไปแล้วหรือยัง")
 
 
 ALLOWED_FILENAME_KEYWORDS = ("monthpremium", "lalldailypremium")
@@ -285,3 +385,23 @@ if uploaded_file:
         st.info("ไฟล์นี้ประมวลผลไปแล้ว")
         if st.button("🔁 ส่งซ้ำอีกครั้ง"):
             process_and_write(uploaded_file, sheet_url, worksheet_name)
+
+
+if uploaded_xlsx:
+    if not st.session_state.get("pdf_ready"):
+        st.error(
+            "อัปโหลดไฟล์นี้เดี่ยวๆ ไม่ได้ — ต้องอัปโหลดไฟล์ PDF รายงานเบี้ยประกันก่อน "
+            "(หรือแนบพร้อมกัน) แอปจะได้รู้ว่าจะจับคู่ข้อมูลกับแถวไหนใน Import"
+        )
+        st.stop()
+
+    xlsx_key = f"{uploaded_xlsx.name}_{uploaded_xlsx.size}"
+    xlsx_already_done = st.session_state.get("last_processed_xlsx") == xlsx_key
+
+    if not xlsx_already_done:
+        st.session_state["last_processed_xlsx"] = xlsx_key
+        process_xlsx_merge(uploaded_xlsx, sheet_url, worksheet_name)
+    else:
+        st.info("ไฟล์ xlsx นี้ประมวลผลไปแล้ว")
+        if st.button("🔁 ส่งไฟล์ xlsx ซ้ำอีกครั้ง"):
+            process_xlsx_merge(uploaded_xlsx, sheet_url, worksheet_name)
