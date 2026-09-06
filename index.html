@@ -256,26 +256,9 @@
                     สรุปผลงานฝ่ายขยายงานภูมิภาค 98 ณ วันที่ -
                 </div>
                 <div class="overflow-x-auto w-full">
-                    <table class="w-full text-sm custom-horizontal-table min-w-[850px]">
-                        <thead>
-                            <tr class="bg-[#0b2265] text-white text-center">
-                                <th rowspan="2" class="py-3 px-3 w-[28%]">ชื่อ สกุล</th>
-                                <th colspan="2" class="py-1.5 px-2">ผลงาน</th>
-                                <th colspan="4" class="py-1.5 px-2">บริหารหน่วย</th>
-                                <th colspan="4" class="py-1.5 px-2">บริหารศูนย์</th>
-                            </tr>
-                            <tr class="bg-[#0b2265] text-white text-center text-xs">
-                                <th class="py-1.5 px-2">เบี้ยปีแรก</th>
-                                <th class="py-1.5 px-2">ค่าบำเหน็จ</th>
-                                <th class="py-1.5 px-2">มี</th>
-                                <th class="py-1.5 px-2">เต็ม</th>
-                                <th class="py-1.5 px-2">ตก</th>
-                                <th class="py-1.5 px-2">%</th>
-                                <th class="py-1.5 px-2">มี</th>
-                                <th class="py-1.5 px-2">เต็ม</th>
-                                <th class="py-1.5 px-2">ตก</th>
-                                <th class="py-1.5 px-2">%</th>
-                            </tr>
+                    <table class="w-full text-sm custom-horizontal-table min-w-[900px]">
+                        <thead id="region-table-head">
+                            <!-- สร้างส่วนหัวตารางแบบไดนามิกผ่าน JavaScript -->
                         </thead>
                         <tbody id="region-table-body"></tbody>
                     </table>
@@ -300,26 +283,9 @@
                     สรุปผลงานฝ่ายขยายงานภูมิภาค 98 ณ วันที่ -
                 </div>
                 <div class="overflow-x-auto w-full">
-                    <table class="w-full text-sm custom-horizontal-table min-w-[850px]">
-                        <thead>
-                            <tr class="bg-[#0b2265] text-white text-center">
-                                <th rowspan="2" class="py-3 px-3 w-[28%]">ชื่อ สกุล</th>
-                                <th colspan="2" class="py-1.5 px-2">ผลงาน</th>
-                                <th colspan="4" class="py-1.5 px-2">บริหารหน่วย</th>
-                                <th colspan="4" class="py-1.5 px-2">บริหารศูนย์</th>
-                            </tr>
-                            <tr class="bg-[#0b2265] text-white text-center text-xs">
-                                <th class="py-1.5 px-2">เบี้ยปีแรก</th>
-                                <th class="py-1.5 px-2">ค่าบำเหน็จ</th>
-                                <th class="py-1.5 px-2">มี</th>
-                                <th class="py-1.5 px-2">เต็ม</th>
-                                <th class="py-1.5 px-2">ตก</th>
-                                <th class="py-1.5 px-2">%</th>
-                                <th class="py-1.5 px-2">มี</th>
-                                <th class="py-1.5 px-2">เต็ม</th>
-                                <th class="py-1.5 px-2">ตก</th>
-                                <th class="py-1.5 px-2">%</th>
-                            </tr>
+                    <table class="w-full text-sm custom-horizontal-table min-w-[900px]">
+                        <thead id="alllevels-table-head">
+                            <!-- สร้างส่วนหัวตารางแบบไดนามิกผ่าน JavaScript -->
                         </thead>
                         <tbody id="alllevels-table-body"></tbody>
                     </table>
@@ -378,6 +344,13 @@
             if (!val) return 0;
             let num = Number(String(val).replace(/,/g, ''));
             return isNaN(num) ? 0 : num;
+        }
+
+        function formatPValue(val) {
+            if (val === undefined || val === null || String(val).trim() === '') return '';
+            let num = Number(val);
+            if (isNaN(num)) return String(val);
+            return num.toFixed(2);
         }
 
         fetch(WEB_APP_URL)
@@ -452,8 +425,8 @@
                     legendContainer.appendChild(itemDiv);
                 });
 
-                buildRegionCenterTable('region-table-body', data.rows, i2Val, n2Val, false);
-                buildRegionCenterTable('alllevels-table-body', data.rows, i2Val, n2Val, true);
+                buildRegionCenterTable('region-table-head', 'region-table-body', data.rows, i2Val, n2Val, false, data);
+                buildRegionCenterTable('alllevels-table-head', 'alllevels-table-body', data.rows, i2Val, n2Val, true, data);
 
                 function renderFilteredTable(containerId, targetPositions, valueIndex, color, limit, minThreshold) {
                     let mapData = {};
@@ -486,7 +459,7 @@
 
                             if (isCommissionCol && minThreshold !== undefined && val < minThreshold) {
                                 valColorClass = "text-red-600 font-bold";
-                                barColor = "rgba(39, 52, 130, 0.5)"; // สีอ่อนลง 50% (ความโปร่งใส 50%)
+                                barColor = "rgba(39, 52, 130, 0.5)"; 
                             }
 
                             html += `
@@ -519,9 +492,39 @@
             })
             .catch(err => console.error('Error loading data from Google Sheet:', err));
 
-        function buildRegionCenterTable(tbodyId, rows, summaryI2, summaryN2, isAllLevels) {
+        function buildRegionCenterTable(theadId, tbodyId, rows, summaryI2, summaryN2, isAllLevels, dataObj) {
+            let thead = document.getElementById(theadId);
             let tbody = document.getElementById(tbodyId);
             tbody.innerHTML = '';
+
+            let summaryRowFromData = rows.find(r => r[0] === "ฝ่าย");
+            let rawPVal = summaryRowFromData ? summaryRowFromData[15] : (dataObj && dataObj.summary ? dataObj.summary.p2 : undefined);
+            let hasPCol = rawPVal !== undefined && rawPVal !== null && String(rawPVal).trim() !== '';
+            let summaryPVal = hasPCol ? formatPValue(rawPVal) : '';
+            let colNameWidth = hasPCol ? 'w-[26%]' : 'w-[30%]';
+            let colPWidth = hasPCol ? '<th rowspan="2" class="py-3 px-2 w-[8%]">ผลบังคับ</th>' : '';
+            
+            thead.innerHTML = `
+                <tr class="bg-[#0b2265] text-white text-center">
+                    <th rowspan="2" class="py-3 px-3 ${colNameWidth}">ชื่อ สกุล</th>
+                    <th colspan="2" class="py-1.5 px-2">ผลงาน</th>
+                    <th colspan="4" class="py-1.5 px-2">บริหารหน่วย</th>
+                    <th colspan="4" class="py-1.5 px-2">บริหารศูนย์</th>
+                    ${colPWidth}
+                </tr>
+                <tr class="bg-[#0b2265] text-white text-center text-xs">
+                    <th class="py-1.5 px-2">เบี้ยปีแรก</th>
+                    <th class="py-1.5 px-2">ค่าบำเหน็จ</th>
+                    <th class="py-1.5 px-2">มี</th>
+                    <th class="py-1.5 px-2">เต็ม</th>
+                    <th class="py-1.5 px-2">ตก</th>
+                    <th class="py-1.5 px-2">%</th>
+                    <th class="py-1.5 px-2">มี</th>
+                    <th class="py-1.5 px-2">เต็ม</th>
+                    <th class="py-1.5 px-2">ตก</th>
+                    <th class="py-1.5 px-2">%</th>
+                </tr>
+            `;
 
             let regions = rows.filter(r => r[0] === "ภาค" || r[0] === "ภาค(GL)");
             let totalCommissionSummary = regions.reduce((sum, reg) => sum + cleanNumber(reg[7]), 0);
@@ -542,6 +545,7 @@
 
             let summaryTr = document.createElement('tr');
             summaryTr.className = 'bg-[#1558a2] text-white font-bold text-center';
+            let summaryPCell = hasPCol ? `<td class="py-2.5 px-2 text-center">${summaryPVal}</td>` : '';
             summaryTr.innerHTML = `
                 <td class="py-2.5 px-3 text-left">ฝ่าย ${summaryN2.toFixed(2)}%</td>
                 <td class="py-2.5 px-2 text-right">${summaryI2.toLocaleString()}</td>
@@ -554,6 +558,7 @@
                 <td class="py-2.5 px-2 text-center">${totalCenTem}</td>
                 <td class="py-2.5 px-2 text-center text-red-300">${totalCenTok}</td>
                 <td class="py-2.5 px-2 text-center text-red-300">${totalCenPct}</td>
+                ${summaryPCell}
             `;
             tbody.appendChild(summaryTr);
 
@@ -563,6 +568,7 @@
                 let regName = reg[2]; 
                 let regPrem = cleanNumber(reg[8]); 
                 let regComm = cleanNumber(reg[7]); 
+                let regPVal = formatPValue(reg[15]);
 
                 let centers = allCenters.filter(r => r[4] === regName);
                 let cenMe = centers.length;
@@ -580,6 +586,7 @@
                 regTr.className = 'bg-[#047dc2] text-white font-bold text-center';
                 
                 let regCommClass = regComm < 60000 ? 'py-2 px-2 text-right text-red-300 font-bold' : 'py-2 px-2 text-right';
+                let regPCell = hasPCol ? `<td class="py-2 px-2 text-center">${regPVal}</td>` : '';
 
                 regTr.innerHTML = `
                     <td class="py-2 px-3 text-left">${index + 1} ${regName}</td>
@@ -593,6 +600,7 @@
                     <td class="py-2 px-2 text-center">${cenTem}</td>
                     <td class="py-2 px-2 text-center text-red-300">${cenTok}</td>
                     <td class="py-2 px-2 text-center text-red-300">${cenPct}</td>
+                    ${regPCell}
                 `;
                 tbody.appendChild(regTr);
 
@@ -602,6 +610,7 @@
                     let cenName = cen[2]; 
                     let cenPrem = cleanNumber(cen[8]); 
                     let cenComm = cleanNumber(cen[7]); 
+                    let cenPVal = formatPValue(cen[15]);
                     
                     let unitsInCen = allUnits.filter(r => r[5] === cenName);
                     let cUnitMe = unitsInCen.length;
@@ -614,6 +623,7 @@
                     cenTr.className = `hover:opacity-95 text-center font-semibold text-gray-900`;
 
                     let cenCommClass = cenComm < 15000 ? 'py-1.5 px-2 text-right text-red-600 font-bold' : 'py-1.5 px-2 text-right';
+                    let cenPCell = hasPCol ? `<td class="py-1.5 px-2 text-center">${cenPVal}</td>` : '';
 
                     if (cenComm < 15000) {
                         let diffCen = 15000 - cenComm;
@@ -626,6 +636,7 @@
                             <td class="py-1.5 px-2 text-center text-red-700">${cUnitTok}</td>
                             <td class="py-1.5 px-2 text-center">${cUnitPct}</td>
                             <td colspan="4" class="py-1.5 px-2 text-left text-red-700 pl-4">ขาดคอม ${diffCen.toLocaleString()} เต็มศูนย์</td>
+                            ${cenPCell}
                         `;
                     } else {
                         cenTr.innerHTML = `
@@ -637,6 +648,7 @@
                             <td class="py-1.5 px-2 text-center text-red-700">${cUnitTok}</td>
                             <td class="py-1.5 px-2 text-center">${cUnitPct}</td>
                             <td colspan="4" class="py-1.5 px-2"></td>
+                            ${cenPCell}
                         `;
                     }
                     tbody.appendChild(cenTr);
@@ -647,12 +659,14 @@
                             let unitName = unit[2];
                             let unitPrem = cleanNumber(unit[8]);
                             let unitComm = cleanNumber(unit[7]);
+                            let unitPVal = formatPValue(unit[15]);
 
                             let unitTr = document.createElement('tr');
                             unitTr.style.backgroundColor = '#cce5f1';
                             unitTr.className = 'hover:opacity-95 text-center font-semibold text-gray-900';
 
                             let unitCommClass = unitComm < 2500 ? 'py-1.5 px-2 text-right text-red-700 font-bold' : 'py-1.5 px-2 text-right text-gray-900';
+                            let unitPCell = hasPCol ? `<td class="py-1.5 px-2 text-center">${unitPVal}</td>` : '';
 
                             let unitAdminHtml = '';
                             if (unitComm < 2500) {
@@ -668,6 +682,7 @@
                                 <td class="${unitCommClass}">${unitComm.toLocaleString()}</td>
                                 ${unitAdminHtml}
                                 <td colspan="4"></td>
+                                ${unitPCell}
                             `;
                             tbody.appendChild(unitTr);
 
@@ -681,15 +696,18 @@
                                 }
                                 let agentPrem = cleanNumber(agent[8]);
                                 let agentComm = cleanNumber(agent[7]);
+                                let agentPVal = formatPValue(agent[15]);
 
                                 let agentTr = document.createElement('tr');
                                 agentTr.className = 'bg-white hover:bg-gray-50 text-center font-normal text-gray-700';
+                                let agentPCell = hasPCol ? `<td class="py-1.5 px-2 text-center">${agentPVal}</td>` : '';
 
                                 agentTr.innerHTML = `
                                     <td class="py-1.5 px-3 text-left pl-14 text-gray-700">${aIdx + 1} ${agentName}</td>
                                     <td class="py-1.5 px-2 text-right text-gray-700">${agentPrem.toLocaleString()}</td>
                                     <td class="py-1.5 px-2 text-right text-gray-700">${agentComm.toLocaleString()}</td>
                                     <td colspan="8"></td>
+                                    ${agentPCell}
                                 `;
                                 tbody.appendChild(agentTr);
                             });
