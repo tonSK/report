@@ -265,7 +265,7 @@ if "uploader_generation" not in st.session_state:
 gen = st.session_state["uploader_generation"]
 
 uploaded_file = st.file_uploader(
-    "เลือกไฟล์ PDF รายงานเบี้ยประกัน",
+    "ไฟล์ PDF ชื่อขึ้นต้นด้วย Lalldailypremium, dailypremium, monthpremium",
     type=["pdf"],
     accept_multiple_files=False,
     key=f"pdf_uploader_{gen}",
@@ -377,7 +377,7 @@ def process_xlsx_merge(xlsx_file, target_sheet_url, target_worksheet_name):
         st.warning("ไม่พบแถวที่จับคู่ได้เลย — ตรวจสอบว่าอัปโหลด PDF เดือนเดียวกันไปแล้วหรือยัง")
 
 
-ALLOWED_FILENAME_KEYWORDS = ("monthpremium", "lalldailypremium")
+ALLOWED_FILENAME_KEYWORDS = ("monthpremium", "lalldailypremium", "dailypremium")
 
 
 def is_allowed_filename(filename):
@@ -402,8 +402,8 @@ if import_clicked:
         if uploaded_file:
             if not is_allowed_filename(uploaded_file.name):
                 st.error(
-                    "ชื่อไฟล์ PDF นี้ไม่ตรงรูปแบบที่รองรับ — ต้องมีคำว่า \"monthpremium\" หรือ "
-                    "\"Lalldailypremium\" อยู่ในชื่อไฟล์ ระบบจะไม่ประมวลผลไฟล์นี้"
+                    "ชื่อไฟล์ PDF นี้ไม่ตรงรูปแบบที่รองรับ — ต้องมีคำว่า \"monthpremium\", "
+                    "\"dailypremium\" หรือ \"Lalldailypremium\" อยู่ในชื่อไฟล์ ระบบจะไม่ประมวลผลไฟล์นี้"
                 )
             else:
                 process_and_write(uploaded_file, sheet_url, worksheet_name)
