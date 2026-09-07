@@ -265,13 +265,13 @@ if "uploader_generation" not in st.session_state:
 gen = st.session_state["uploader_generation"]
 
 uploaded_file = st.file_uploader(
-    "ไฟล์ PDF ชื่อขึ้นต้นด้วย Lalldailypremium, dailypremium, monthpremium",
+    "PDF รายงานเบี้ยประกัน (dailypremium, Lalldailypremium, monthpremium)",
     type=["pdf"],
     accept_multiple_files=False,
     key=f"pdf_uploader_{gen}",
 )
 uploaded_xlsx = st.file_uploader(
-    "แนบไฟล์ xlsx ประกอบ (ไม่บังคับ — ต้องมีข้อมูลใน Import จากไฟล์ PDF อยู่ก่อนแล้ว)",
+    "[ไม่บังคับ} xlsx รายงาผผลงานตนเองและทีมงาน (%ผลบังคับ)",
     type=["xlsx"],
     accept_multiple_files=False,
     key=f"xlsx_uploader_{gen}",
