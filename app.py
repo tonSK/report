@@ -271,7 +271,7 @@ uploaded_file = st.file_uploader(
     key=f"pdf_uploader_{gen}",
 )
 uploaded_xlsx = st.file_uploader(
-    "[ไม่บังคับ} xlsx รายงาผผลงานตนเองและทีมงาน (%ผลบังคับ)",
+    "[ไม่บังคับ] xlsx รายงาผผลงานตนเองและทีมงาน - %ผลบังคับ",
     type=["xlsx"],
     accept_multiple_files=False,
     key=f"xlsx_uploader_{gen}",
