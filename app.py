@@ -265,7 +265,7 @@ if "uploader_generation" not in st.session_state:
 gen = st.session_state["uploader_generation"]
 
 uploaded_file = st.file_uploader(
-    "ไฟล์ PDF ชื่อขึ้นต้นด้วย Lalldailypremium/dailypremium/monthpremium",
+    "ไฟล์ PDF ชื่อขึ้นต้นด้วย Lalldailypremium, dailypremium, monthpremium",
     type=["pdf"],
     accept_multiple_files=False,
     key=f"pdf_uploader_{gen}",
