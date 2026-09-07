@@ -11,7 +11,7 @@ from google.oauth2.service_account import Credentials
 # ตั้งค่าหน้าเว็บ
 # ---------------------------------------------------------------------------
 st.set_page_config(page_title="แปลงรายงานเบี้ยประกัน PDF -> Google Sheet", page_icon="📄")
-st.title("📄 แปลงรายงานเบี้ยประกัน PDF ➜ Google Sheet")
+st.title("📄 Import รายงานเบี้ยประกัน PDF ➜ Google Sheet")
 st.write("อัปโหลดไฟล์ PDF รายงานเบี้ยประกัน ระบบจะอ่านและเขียนข้อมูลเข้า Google Sheet ให้อัตโนมัติ")
 
 # ---------------------------------------------------------------------------
