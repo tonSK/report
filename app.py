@@ -254,8 +254,9 @@ def get_gsheet_client():
 # ---------------------------------------------------------------------------
 DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1fYTibLa8riOyUPzPiu_579f5Ntu9_4B5yGLQJ8-LnA4/edit?usp=sharing"
 
-sheet_url = st.text_input("ลิงก์ Google Sheet ปลายทาง", value=DEFAULT_SHEET_URL)
-worksheet_name = st.text_input("ชื่อชีต (tab) ที่จะเขียนข้อมูลลง", value="Import")
+# ไม่แสดงลิงก์ Google Sheet และชื่อชีตในหน้าแอป (ป้องกันคนอื่นเห็น) — ใช้ค่าคงที่แทน
+sheet_url = DEFAULT_SHEET_URL
+worksheet_name = "Import"
 
 # ใช้ตัวนับต่อท้าย key ของ file_uploader เพื่อให้ปุ่ม Clear
 # สามารถ "รีเซ็ต" ไฟล์ที่แนบไว้ได้ (เปลี่ยน key ทำให้ widget เริ่มใหม่)
