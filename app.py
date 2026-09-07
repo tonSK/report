@@ -11,7 +11,7 @@ from google.oauth2.service_account import Credentials
 # ตั้งค่าหน้าเว็บ
 # ---------------------------------------------------------------------------
 st.set_page_config(page_title="แปลงรายงานเบี้ยประกัน PDF -> Google Sheet", page_icon="📄")
-st.title("📄รายงานเบี้ยประกัน PDF ➜ Google Sheet")
+st.title("📄 แปลงรายงานเบี้ยประกัน PDF ➜ Google Sheet")
 st.write("อัปโหลดไฟล์ PDF รายงานเบี้ยประกัน ระบบจะอ่านและเขียนข้อมูลเข้า Google Sheet ให้อัตโนมัติ")
 
 # ---------------------------------------------------------------------------
@@ -265,7 +265,7 @@ if "uploader_generation" not in st.session_state:
 gen = st.session_state["uploader_generation"]
 
 uploaded_file = st.file_uploader(
-    "ไฟล์ PDF ชื่อขึ้นต้นด้วย Lalldailypremium, dailypremium, monthpremium",
+    "เลือกไฟล์ PDF รายงานเบี้ยประกัน",
     type=["pdf"],
     accept_multiple_files=False,
     key=f"pdf_uploader_{gen}",
