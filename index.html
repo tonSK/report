@@ -110,11 +110,10 @@
 </head>
 <body class="bg-gray-100 text-gray-800 flex min-h-screen relative overflow-x-hidden">
 
-    <!-- Sidebar ด้านซ้าย -->
-    <aside id="sidebar" class="bg-[#047dc2] p-4 shadow-md w-48 flex-shrink-0 min-h-screen sticky top-0 transition-all duration-300 z-30 flex flex-col justify-between">
+    <aside id="sidebar" class="bg-[#047dc2] p-4 shadow-md w-56 flex-shrink-0 min-h-screen sticky top-0 transition-all duration-300 z-30 flex flex-col justify-between">
         <div class="space-y-4">
             <div>
-                <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
                     <div class="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center p-1 flex-shrink-0">
                         <img src="https://i.ibb.co/wFGzSJWT/Logo98-New-Wh.png" alt="Logo" class="w-full h-full object-contain">
                     </div>
@@ -152,7 +151,7 @@
                 <!-- ส่วนบน: เกจ, ตัวเลขสรุป, กราฟวงกลม -->
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center pb-6 border-b border-gray-100">
                     <div class="relative flex flex-col items-center justify-center md:col-span-4 border-b md:border-b-0 md:border-r border-gray-100 pb-4 md:pb-0">
-                        <button onclick="toggleSidebar()" class="absolute top-0 left-0 p-0 transition flex items-center justify-center z-10">
+                        <button onclick="toggleSidebar()" class="absolute fixed top-0 left-0 p-0 transition flex items-center justify-center z-10">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
                         </button>
                         <h3 id="gauge-title-date" class="text-red-500 font-semibold text-xl mb-3">วันที่ -</h3>
