@@ -159,7 +159,14 @@
                 </div>
             </div>
         </div>
-        <div class="pt-4 text-xs text-gray-500"></div>
+        <div class="pt-4">
+            <button onclick="reloadData()" id="btn-reload" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-300 hover:bg-[#273482]/30 border border-white/10">
+                <svg id="reload-icon" class="w-4 h-4 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4.5 9A7.5 7.5 0 0119 7.5M19.5 15A7.5 7.5 0 015 16.5"/>
+                </svg>
+                <span id="reload-label">Reload</span>
+            </button>
+        </div>
     </aside>
 
     <!-- พื้นที่เนื้อหาหลักทางขวา -->
@@ -577,6 +584,43 @@
         }
 
         loadReport();
+
+        function reloadData() {
+            const btn = document.getElementById('btn-reload');
+            const icon = document.getElementById('reload-icon');
+            const label = document.getElementById('reload-label');
+
+            if (btn.disabled) return; // กันการกดซ้ำระหว่างกำลังโหลด
+
+            btn.disabled = true;
+            btn.classList.add('opacity-60', 'cursor-not-allowed');
+            icon.classList.add('animate-spin');
+            label.innerText = 'กำลังโหลด...';
+
+            fetch(WEB_APP_URL, { cache: 'no-store' })
+                .then(response => response.json())
+                .then(data => {
+                    processData(data);
+                    try {
+                        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+                    } catch (e) {
+                        console.error('Error saving report data cache:', e);
+                    }
+                    label.innerText = 'อัปเดตแล้ว';
+                })
+                .catch(err => {
+                    console.error('Error reloading data from Google Sheet:', err);
+                    label.innerText = 'โหลดไม่สำเร็จ';
+                })
+                .finally(() => {
+                    icon.classList.remove('animate-spin');
+                    setTimeout(() => {
+                        label.innerText = 'Reload';
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-60', 'cursor-not-allowed');
+                    }, 1500);
+                });
+        }
 
         function buildBothRegionTables(rows, summaryI2, summaryN2, dataObj) {
             const regionThead = document.getElementById('region-table-head');
