@@ -367,6 +367,9 @@
         }
 
         const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyIRcGQ-5jbjUmguDFm7pt0br5SAPyQxPWonL00NcIiV0l2DCIQi-LJrTBs2RyGlIZI/exec';
+        const CACHE_KEY = 'report98_cache_v1';
+        let gaugeChartInstance = null;
+        let pieChartInstance = null;
 
         function cleanNumber(val) {
             if (typeof val === 'number') return val;
@@ -410,9 +413,7 @@
             return formattedText;
         }
 
-        fetch(WEB_APP_URL)
-            .then(response => response.json())
-            .then(data => {
+        function processData(data) {
                 let rawDate = data.summary.dateColumnHeader || '';
                 let formattedDate = formatThaiDate(rawDate);
                 document.getElementById('sidebar-date').innerText = formattedDate;
@@ -435,7 +436,8 @@
                 document.getElementById('val-n2').innerText = n2Val.toFixed(2) + '%';
                 document.getElementById('val-i2-gauge').innerText = i2Val.toLocaleString();
 
-                new Chart(document.getElementById('gaugeChart').getContext('2d'), {
+                if (gaugeChartInstance) gaugeChartInstance.destroy();
+                gaugeChartInstance = new Chart(document.getElementById('gaugeChart').getContext('2d'), {
                     type: 'doughnut',
                     data: { datasets: [{ data: [n2Val, Math.max(0, 100 - n2Val)], backgroundColor: ['#047dc2', '#e5e7eb'], borderWidth: 0 }] },
                     options: { circumference: 180, rotation: 270, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
@@ -456,7 +458,8 @@
                 let sortedPie = Object.entries(pieMap).sort((a,b) => b[1] - a[1]);
                 let pieColors = ['#1e3a8a', '#047dc2', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe'];
 
-                new Chart(document.getElementById('pieChart').getContext('2d'), {
+                if (pieChartInstance) pieChartInstance.destroy();
+                pieChartInstance = new Chart(document.getElementById('pieChart').getContext('2d'), {
                     type: 'pie',
                     data: {
                         labels: sortedPie.map(item => item[0]),
@@ -544,9 +547,36 @@
                 renderFilteredTable('table-centerPremium', 'ศูนย์', 8, '#047dc2', 5, undefined);
                 renderFilteredTable('table-centerCommission', 'ศูนย์', 7, '#273482', 5, 15000);  
                 renderFilteredTable('table-unitPremium', 'หน่วย', 8, '#047dc2', 10, undefined);
-                renderFilteredTable('table-unitCommission', 'หน่วย', 7, '#273482', 10, 2500);    
-            })
-            .catch(err => console.error('Error loading data from Google Sheet:', err));
+                renderFilteredTable('table-unitCommission', 'หน่วย', 7, '#273482', 10, 2500);
+        }
+
+        function loadReport() {
+            // 1) แสดงข้อมูลล่าสุดที่แคชไว้ทันที (ถ้ามี) เพื่อให้เห็นรายงานได้เร็ว ระหว่างรอข้อมูลสดจาก Google Sheet
+            try {
+                const cachedRaw = localStorage.getItem(CACHE_KEY);
+                if (cachedRaw) {
+                    const cached = JSON.parse(cachedRaw);
+                    processData(cached);
+                }
+            } catch (e) {
+                console.error('Error reading cached report data:', e);
+            }
+
+            // 2) ดึงข้อมูลสดจากเซิร์ฟเวอร์เสมอ แล้วอัปเดตหน้าจอ + แคชใหม่เมื่อได้รับข้อมูล
+            fetch(WEB_APP_URL)
+                .then(response => response.json())
+                .then(data => {
+                    processData(data);
+                    try {
+                        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+                    } catch (e) {
+                        console.error('Error saving report data cache:', e);
+                    }
+                })
+                .catch(err => console.error('Error loading data from Google Sheet:', err));
+        }
+
+        loadReport();
 
         function buildBothRegionTables(rows, summaryI2, summaryN2, dataObj) {
             const regionThead = document.getElementById('region-table-head');
