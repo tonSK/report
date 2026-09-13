@@ -156,16 +156,14 @@
                     <a href="https://98report.streamlit.app" target="_blank" class="block w-full text-left px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-300 hover:bg-[#273482]/30">
                         📥 Import
                     </a>
+                    <button onclick="reloadData()" id="btn-reload" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-300 hover:bg-[#273482]/30 border border-white/10">
+                        <svg id="reload-icon" class="w-4 h-4 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4.5 9A7.5 7.5 0 0119 7.5M19.5 15A7.5 7.5 0 015 16.5"/>
+                        </svg>
+                        <span id="reload-label">Reload</span>
+                    </button>
                 </div>
             </div>
-        </div>
-        <div class="pt-4">
-            <button onclick="reloadData()" id="btn-reload" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-colors text-gray-300 hover:bg-[#273482]/30 border border-white/10">
-                <svg id="reload-icon" class="w-4 h-4 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4.5 9A7.5 7.5 0 0119 7.5M19.5 15A7.5 7.5 0 015 16.5"/>
-                </svg>
-                <span id="reload-label">Reload</span>
-            </button>
         </div>
     </aside>
 
