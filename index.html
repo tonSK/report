@@ -382,26 +382,27 @@
             return num.toFixed(2);
         }
 
+        // ถ้า ตก มากกว่า 0 ให้ใช้สีแดงแบบเดียวกับ ค่าบำเหน็จ ของแถวนั้น ถ้าเท่ากับ 0 (เต็ม) ไม่ต้องใส่สี (ใช้สีปกติแบบช่อง ชื่อ สกุล)
+        function tokColorClass(tokVal, redClass) {
+            return cleanNumber(tokVal) > 0 ? redClass : '';
+        }
+
+        // ถ้า % น้อยกว่า 40% ให้ใช้สีแดงแบบเดียวกับ ค่าบำเหน็จ ของแถวนั้น ถ้าไม่ใช่ ไม่ต้องใส่สี (ใช้สีปกติแบบช่อง ชื่อ สกุล)
+        function pctColorClass(pctStr, redClass) {
+            let num = parseFloat(String(pctStr).replace('%', ''));
+            return (!isNaN(num) && num < 40) ? redClass : '';
+        }
+
         function formatComplianceCell(levelType, val) {
             if (levelType === 'agent') {
                 return '-';
             }
             if (val === undefined || val === null || String(val).trim() === '') return '';
-            let num = Number(val);
+            let num = Number(String(val).replace(/,/g, '').replace(/%/g, '').trim());
             if (isNaN(num)) return String(val);
 
             let formattedText = num.toFixed(2);
-            let isRed = false;
-
-            if (levelType === 'division' || levelType === 'region') {
-                if (num < 85) {
-                    isRed = true;
-                }
-            } else if (levelType === 'center' || levelType === 'unit') {
-                if (num < 75) {
-                    isRed = true;
-                }
-            }
+            let isRed = num < 75;
 
             if (isRed) {
                 return `<span class="text-red-600 font-bold">${formattedText}</span>`;
@@ -631,18 +632,23 @@
             let totalCenPct = totalCenMe > 0 ? ((totalCenTem / totalCenMe) * 100).toFixed(1) + '%' : '0.0%';
 
             let summaryPCell = hasPCol ? `<td class="py-2.5 px-2 text-center">${summaryPVal}</td>` : '';
+            let summaryRedClass = 'text-red-300 font-bold';
+            let totalUnitTokClass = tokColorClass(totalUnitTok, summaryRedClass);
+            let totalUnitPctClass = pctColorClass(totalUnitPct, summaryRedClass);
+            let totalCenTokClass = tokColorClass(totalCenTok, summaryRedClass);
+            let totalCenPctClass = pctColorClass(totalCenPct, summaryRedClass);
             const summaryTrHtml = `
                 <td class="py-2.5 px-3 text-left">ฝ่าย ${summaryN2.toFixed(2)}%</td>
                 <td class="py-2.5 px-2 text-right">${summaryI2.toLocaleString()}</td>
                 <td class="py-2.5 px-2 text-right">${totalCommissionSummary.toLocaleString()}</td>
                 <td class="py-2.5 px-2 text-center">${totalUnitMe}</td>
                 <td class="py-2.5 px-2 text-center">${totalUnitTem}</td>
-                <td class="py-2.5 px-2 text-center text-red-300">${totalUnitTok}</td>
-                <td class="py-2.5 px-2 text-center text-red-300">${totalUnitPct}</td>
+                <td class="py-2.5 px-2 text-center ${totalUnitTokClass}">${totalUnitTok}</td>
+                <td class="py-2.5 px-2 text-center ${totalUnitPctClass}">${totalUnitPct}</td>
                 <td class="py-2.5 px-2 text-center">${totalCenMe}</td>
                 <td class="py-2.5 px-2 text-center">${totalCenTem}</td>
-                <td class="py-2.5 px-2 text-center text-red-300">${totalCenTok}</td>
-                <td class="py-2.5 px-2 text-center text-red-300">${totalCenPct}</td>
+                <td class="py-2.5 px-2 text-center ${totalCenTokClass}">${totalCenTok}</td>
+                <td class="py-2.5 px-2 text-center ${totalCenPctClass}">${totalCenPct}</td>
                 ${summaryPCell}
             `;
             const makeRow = (className, html, bg) => {
@@ -676,8 +682,13 @@
                 let unitTok = unitMe - unitTem;
                 let unitPct = unitMe > 0 ? ((unitTem / unitMe) * 100).toFixed(1) + '%' : '0.0%';
 
-                let regCommClass = regComm < 60000 ? 'py-2 px-2 text-right text-red-300 font-bold' : 'py-2 px-2 text-right';
+                let regRedClass = 'text-red-300 font-bold';
+                let regCommClass = regComm < 60000 ? `py-2 px-2 text-right ${regRedClass}` : 'py-2 px-2 text-right';
                 let regPCell = hasPCol ? `<td class="py-2 px-2 text-center">${regPVal}</td>` : '';
+                let unitTokClass = tokColorClass(unitTok, regRedClass);
+                let unitPctClass = pctColorClass(unitPct, regRedClass);
+                let cenTokClass = tokColorClass(cenTok, regRedClass);
+                let cenPctClass = pctColorClass(cenPct, regRedClass);
 
                 const regTrHtml = `
                     <td class="py-2 px-3 text-left">${index + 1} ${regName}</td>
@@ -685,12 +696,12 @@
                     <td class="${regCommClass}">${regComm.toLocaleString()}</td>
                     <td class="py-2 px-2 text-center">${unitMe}</td>
                     <td class="py-2 px-2 text-center">${unitTem}</td>
-                    <td class="py-2 px-2 text-center text-red-300">${unitTok}</td>
-                    <td class="py-2 px-2 text-center text-red-300">${unitPct}</td>
+                    <td class="py-2 px-2 text-center ${unitTokClass}">${unitTok}</td>
+                    <td class="py-2 px-2 text-center ${unitPctClass}">${unitPct}</td>
                     <td class="py-2 px-2 text-center">${cenMe}</td>
                     <td class="py-2 px-2 text-center">${cenTem}</td>
-                    <td class="py-2 px-2 text-center text-red-300">${cenTok}</td>
-                    <td class="py-2 px-2 text-center text-red-300">${cenPct}</td>
+                    <td class="py-2 px-2 text-center ${cenTokClass}">${cenTok}</td>
+                    <td class="py-2 px-2 text-center ${cenPctClass}">${cenPct}</td>
                     ${regPCell}
                 `;
                 regionFrag.appendChild(makeRow('bg-[#047dc2] text-white font-bold text-center', regTrHtml));
@@ -710,8 +721,11 @@
                     let cUnitTok = cUnitMe - cUnitTem;
                     let cUnitPct = cUnitMe > 0 ? ((cUnitTem / cUnitMe) * 100).toFixed(1) + '%' : '0.0%';
 
-                    let cenCommClass = cenComm < 15000 ? 'py-1.5 px-2 text-right text-red-600 font-bold' : 'py-1.5 px-2 text-right';
+                    let cenRedClass = 'text-red-600 font-bold';
+                    let cenCommClass = cenComm < 15000 ? `py-1.5 px-2 text-right ${cenRedClass}` : 'py-1.5 px-2 text-right';
                     let cenPCell = hasPCol ? `<td class="py-1.5 px-2 text-center">${cenPVal}</td>` : '';
+                    let cUnitTokClass = tokColorClass(cUnitTok, cenRedClass);
+                    let cUnitPctClass = pctColorClass(cUnitPct, cenRedClass);
 
                     let cenBodyHtml;
                     if (cenComm < 15000) {
@@ -722,8 +736,8 @@
                             <td class="${cenCommClass}">${cenComm.toLocaleString()}</td>
                             <td class="py-1.5 px-2 text-center">${cUnitMe}</td>
                             <td class="py-1.5 px-2 text-center">${cUnitTem}</td>
-                            <td class="py-1.5 px-2 text-center text-red-700">${cUnitTok}</td>
-                            <td class="py-1.5 px-2 text-center">${cUnitPct}</td>
+                            <td class="py-1.5 px-2 text-center ${cUnitTokClass}">${cUnitTok}</td>
+                            <td class="py-1.5 px-2 text-center ${cUnitPctClass}">${cUnitPct}</td>
                             <td colspan="4" class="py-1.5 px-2 text-left text-red-700 pl-4">ขาดคอม ${diffCen.toLocaleString()} เต็มศูนย์</td>
                             ${cenPCell}
                         `;
@@ -734,8 +748,8 @@
                             <td class="${cenCommClass}">${cenComm.toLocaleString()}</td>
                             <td class="py-1.5 px-2 text-center">${cUnitMe}</td>
                             <td class="py-1.5 px-2 text-center">${cUnitTem}</td>
-                            <td class="py-1.5 px-2 text-center text-red-700">${cUnitTok}</td>
-                            <td class="py-1.5 px-2 text-center">${cUnitPct}</td>
+                            <td class="py-1.5 px-2 text-center ${cUnitTokClass}">${cUnitTok}</td>
+                            <td class="py-1.5 px-2 text-center ${cUnitPctClass}">${cUnitPct}</td>
                             <td colspan="4" class="py-1.5 px-2"></td>
                             ${cenPCell}
                         `;
