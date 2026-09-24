@@ -53,8 +53,6 @@ def extract_lines(file_obj):
             groups = []
             current_group = []
             current_top = None
-            # รวมคำเป็นบรรทัดเดียวกันถ้า top ใกล้กันในระยะ 3pt แทนการปัดเศษเป๊ะๆ
-            # เพราะบางไฟล์คำนำหน้าตำแหน่ง (ศูนย์/หน่วย) จะสูงกว่าตัวเลขในแถวเดียวกันเล็กน้อย
             for w in words:
                 if current_top is not None and abs(w["top"] - current_top) <= 3:
                     current_group.append(w)
@@ -105,18 +103,12 @@ def parse_data_line(ws, current_label):
         idx += 1
     name = " ".join(name_tokens).replace(" - ", "-").strip()
 
-    # เผื่อไฟล์บางแบบ (เช่นรายงานรายวัน) ตำแหน่ง x ของ "รหัส" ไม่ตรงช่วงที่คาดไว้
-    # จึงหลุดไปรวมอยู่ในชื่อแทน เช่น "98 สุภัทรชัย โกศาคาร"
-    # ถ้ายังไม่มีรหัส และคำแรกของชื่อเป็นตัวเลขล้วน ให้แยกออกมาเป็นรหัส
     if not code and name:
         first_word, _, rest = name.partition(" ")
         if re.match(r"^[\d.\-/]+$", first_word):
             code = first_word
             name = rest.strip()
 
-    # บางครั้งบรรทัด "ตัวแทน" แถวแรกของกลุ่มไม่มีคำว่า "ตัวแทน" กำกับ (หลุดจากการพิมพ์)
-    # แต่รหัสตัวแทนจะเป็นตัวเลขล้วน 5 หลักเสมอ (ต่างจากรหัสศูนย์/หน่วยที่มีขีด และรหัสภาคที่มีจุด)
-    # จึงใช้รูปแบบรหัสยืนยันตำแหน่งให้แม่นกว่าการไล่ตามบรรทัดก่อนหน้าอย่างเดียว
     if re.match(r"^\d{5}$", code):
         label = "ตัวแทน"
 
@@ -136,8 +128,6 @@ def parse_pdf(file_obj):
     lines = extract_lines(file_obj)
     rows = []
     current_label = ""
-    # ใช้ไล่ตามลำดับสังกัด: ฝ่าย > ภาค/ภาค(GL) > ศูนย์ > หน่วย > ตัวแทน
-    # เวลาเจอตำแหน่งที่สูงกว่าใหม่ ต้องล้างตำแหน่งที่ต่ำกว่าทั้งหมด เพราะยังไม่มีข้อมูลของสังกัดใหม่
     current_fah = ""
     current_pak = ""
     current_soon = ""
@@ -169,7 +159,6 @@ def parse_pdf(file_obj):
             current_nuay = ""
         elif current_label == "หน่วย":
             current_nuay = name
-        # current_label == "ตัวแทน" -> ไม่ต้องเปลี่ยนอะไร ใช้สังกัดปัจจุบันตามที่ไล่มา
 
         row["ฝ่าย"] = current_fah
         row["ภาค"] = current_pak
@@ -185,12 +174,7 @@ FIELDNAMES = ["ตำแหน่ง", "รหัส", "ชื่อ-สกุ�
               "ฐานเบี้ย", "%เบี้ยปีแรก/ฐาน"]
 
 
-# ---------------------------------------------------------------------------
-# ตรรกะแปลงไฟล์ xlsx ประกอบ (ต้องมาคู่กับ PDF)
-# ---------------------------------------------------------------------------
 def parse_xlsx_col_a(text):
-    """แปลงข้อความคอลัมน์ A เช่น 'ตัวแทน A07106274Z : นายพงศ์ปณต ชลชีพ'
-    ให้ได้ (ตำแหน่ง, รหัส(ตัดตัวอักษรหัวท้ายออก), ชื่อ-สกุล)"""
     left, _, name = text.partition(":")
     left = left.strip()
     name = name.strip()
@@ -206,16 +190,12 @@ def parse_xlsx_col_a(text):
 
 
 def match_code_for_label(label, code):
-    """รหัสในไฟล์ xlsx ของ 'ตัวแทน' จะมีรหัสสาขานำหน้าติดมาด้วย (เช่น 07106274)
-    ให้ตัดเหลือ 5 หลักท้ายเพื่อเทียบกับรหัสตัวแทนใน Import (เช่น 06274)
-    ระดับอื่น (ฝ่าย/ภาค/ศูนย์/หน่วย) ใช้รหัสทั้งเส้นเทียบตรงๆ"""
     if label == "ตัวแทน":
         return code[-5:]
     return code
 
 
 def parse_xlsx(file_obj):
-    """อ่านไฟล์ xlsx คืนค่า list of (label, match_code, colC_value)"""
     wb = openpyxl.load_workbook(file_obj, data_only=True)
     ws = wb.worksheets[0]
     result = []
@@ -230,17 +210,13 @@ def parse_xlsx(file_obj):
 
 
 def extract_date_from_filename(filename):
-    """Find a dd-mm-yy date inside the filename, e.g.
-    'Lallmonthpremium31-08-69.pdf' -> '31/08/2569'."""
     match = re.search(r"(\d{2})-(\d{2})-(\d{2})", filename)
     if not match:
         return None
     dd, mm, yy = match.groups()
     return f"{dd}/{mm}/25{yy}"
 
-# ---------------------------------------------------------------------------
-# เชื่อมต่อ Google Sheets โดยใช้ Service Account (เก็บไว้ใน Streamlit Secrets)
-# ---------------------------------------------------------------------------
+
 def get_gsheet_client():
     scopes = ["https://www.googleapis.com/auth/spreadsheets",
               "https://www.googleapis.com/auth/drive"]
@@ -249,17 +225,11 @@ def get_gsheet_client():
     return gspread.authorize(creds)
 
 
-# ---------------------------------------------------------------------------
-# หน้าเว็บ
-# ---------------------------------------------------------------------------
 DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1fYTibLa8riOyUPzPiu_579f5Ntu9_4B5yGLQJ8-LnA4/edit?usp=sharing"
 
-# ไม่แสดงลิงก์ Google Sheet และชื่อชีตในหน้าแอป (ป้องกันคนอื่นเห็น) — ใช้ค่าคงที่แทน
 sheet_url = DEFAULT_SHEET_URL
 worksheet_name = "Import"
 
-# ใช้ตัวนับต่อท้าย key ของ file_uploader เพื่อให้ปุ่ม Clear
-# สามารถ "รีเซ็ต" ไฟล์ที่แนบไว้ได้ (เปลี่ยน key ทำให้ widget เริ่มใหม่)
 if "uploader_generation" not in st.session_state:
     st.session_state["uploader_generation"] = 0
 gen = st.session_state["uploader_generation"]
@@ -301,15 +271,12 @@ def process_and_write(file, target_sheet_url, target_worksheet_name):
                 except gspread.WorksheetNotFound:
                     ws = sh.add_worksheet(title=target_worksheet_name, rows=1000, cols=20)
 
-                # ล้างข้อมูลเดิมทั้งหมดในชีตนี้ก่อนเสมอ
                 ws.clear()
 
-                # เขียนหัวตารางและข้อมูลใหม่
                 ws.append_row(FIELDNAMES)
                 data_rows = [[r[f] for f in FIELDNAMES] for r in rows]
                 ws.append_rows(data_rows)
 
-                # เขียนวันที่ของรายงาน (จากชื่อไฟล์) ที่ O1
                 if report_date:
                     ws.update(range_name="O1", values=[[report_date]])
 
@@ -319,6 +286,14 @@ def process_and_write(file, target_sheet_url, target_worksheet_name):
                 st.error(f"เขียนเข้า Google Sheet ไม่สำเร็จ: {e}")
     else:
         st.info("ยังไม่ได้ใส่ลิงก์ Google Sheet — ดูตารางด้านบนได้เลย หรือใส่ลิงก์แล้วลองใหม่อีกครั้ง")
+
+
+def normalize_label(label):
+    """ทำให้ 'ภาค(GL)' กับ 'ภาค' เทียบเท่ากัน เพราะไฟล์ xlsx จะไม่มีคำว่า (GL) ต่อท้ายเลย
+    แต่ข้อมูลใน Import ที่มาจาก PDF บางไฟล์จะมี (GL) ต่อท้ายภาคแรกของฝ่าย"""
+    if label == "ภาค(GL)":
+        return "ภาค"
+    return label
 
 
 def process_xlsx_merge(xlsx_file, target_sheet_url, target_worksheet_name):
@@ -334,7 +309,6 @@ def process_xlsx_merge(xlsx_file, target_sheet_url, target_worksheet_name):
         st.error(f"เปิด Google Sheet ไม่สำเร็จ: {e}")
         return
 
-    # อ่านข้อมูลปัจจุบันในชีต Import เพื่อหาว่าแต่ละแถวอยู่บรรทัดไหน
     existing = ws.get_all_values()
     if len(existing) < 2:
         st.warning("ยังไม่มีข้อมูลใน Import — กรุณาแนบไฟล์ PDF คู่กัน หรืออัปโหลด PDF ก่อน")
@@ -349,15 +323,15 @@ def process_xlsx_merge(xlsx_file, target_sheet_url, target_worksheet_name):
         return
 
     row_lookup = {}
-    for i, row in enumerate(existing[1:], start=2):  # แถวที่ 2 เป็นต้นไป (แถวจริงในชีต)
+    for i, row in enumerate(existing[1:], start=2):
         if len(row) > max(idx_pos, idx_code):
-            key = (row[idx_pos], row[idx_code].replace("-", ""))
+            key = (normalize_label(row[idx_pos]), row[idx_code].replace("-", ""))
             row_lookup[key] = i
 
     updates = []
     matched = 0
     for label, match_code, col_c in xlsx_rows:
-        key = (label, match_code)
+        key = (normalize_label(label), match_code)
         if key in row_lookup:
             row_num = row_lookup[key]
             try:
@@ -368,7 +342,6 @@ def process_xlsx_merge(xlsx_file, target_sheet_url, target_worksheet_name):
             matched += 1
 
     if updates:
-        # เพิ่มหัวข้อคอลัมน์ P1
         updates.append({"range": "P1", "values": [["%ผลบังคับ"]]})
         with st.spinner("กำลังเขียนคอลัมน์ P เข้า Google Sheet..."):
             ws.batch_update(updates)
