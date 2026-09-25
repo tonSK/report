@@ -424,12 +424,15 @@ def process_fyp_merge(xlsx_file, target_sheet_url, fyp_worksheet_name):
         st.error(f"เปิด Google Sheet ไม่สำเร็จ: {e}")
         return
 
-    existing = ws.get_all_values()
-    if not existing:
+    # ล้างข้อมูลเดิมทั้งหมดในชีตนี้ก่อนเสมอ แล้วเริ่มใหม่จากไฟล์ที่นำเข้าครั้งนี้
+    with st.spinner(f"กำลังล้างข้อมูลเดิมในชีต {fyp_worksheet_name}..."):
+        ws.clear()
         ws.append_row(FYP_HEADER)
-        existing = [FYP_HEADER]
+    st.info(f"ล้างข้อมูลเดิมในชีต {fyp_worksheet_name} เรียบร้อยแล้ว")
+    existing = [FYP_HEADER]
 
-    # แถวที่มีอยู่แล้ว จับคู่ด้วย (ตำแหน่ง, รหัส)
+    # แถวที่มีอยู่แล้ว จับคู่ด้วย (ตำแหน่ง, รหัส) — หลังล้างแล้วจะไม่มีแถวเดิมให้จับคู่
+    # แต่ยังคงลอจิกนี้ไว้เผื่อชื่อซ้ำกันภายในไฟล์เดียวกัน
     row_lookup = {}
     for i, row in enumerate(existing[1:], start=2):
         if len(row) > 2:
