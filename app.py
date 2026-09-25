@@ -209,6 +209,55 @@ def parse_xlsx(file_obj):
     return result
 
 
+FYP_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+              "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
+FYP_HEADER = ["ชื่อ", "ตำแหน่ง", "รหัส"] + FYP_MONTHS + ["สะสม"]
+
+TITLE_PREFIX_RE = re.compile(r"^(นางสาว|นาย|นาง|น\.ส\.)\s*")
+
+
+def strip_title_prefix(name):
+    """ตัดคำนำหน้าชื่อออก เช่น 'นายสุภัทรชัย โกศาคาร' -> 'สุภัทรชัย โกศาคาร'"""
+    return TITLE_PREFIX_RE.sub("", name).strip()
+
+
+def find_fyp_month_columns(ws):
+    """หาว่าคอลัมน์ไหนในไฟล์ต้นทางคือเดือนอะไร จากหัวตาราง เช่น 'ม.ค. 69' -> 'ม.ค.'
+    คืนค่า dict: column_index(1-based) -> ชื่อเดือนแบบย่อ"""
+    month_col_map = {}
+    for c in range(1, ws.max_column + 1):
+        val = ws.cell(row=1, column=c).value
+        if not val or not isinstance(val, str):
+            continue
+        token = val.strip().split()[0] if val.strip() else ""
+        if token in FYP_MONTHS:
+            month_col_map[c] = token
+    return month_col_map
+
+
+def parse_fyp_xlsx(file_obj):
+    """อ่านไฟล์ xlsx แบบรายเดือน (คอลัมน์ A=ตำแหน่ง+รหัส+ชื่อ, ตามด้วยคอลัมน์ค่าต่อเดือน)
+    คืนค่า list of dict: {label, code, name, months: {ชื่อเดือน: ค่า}}"""
+    wb = openpyxl.load_workbook(file_obj, data_only=True)
+    ws = wb.worksheets[0]
+    month_col_map = find_fyp_month_columns(ws)
+
+    result = []
+    for row in ws.iter_rows(min_row=3, values_only=True):
+        col_a = row[0]
+        if not col_a:
+            continue
+        label, code, name = parse_xlsx_col_a(str(col_a))
+        clean_name = strip_title_prefix(name)
+        months = {}
+        for col_idx, month in month_col_map.items():
+            val = row[col_idx - 1] if col_idx - 1 < len(row) else None
+            if val not in (None, ""):
+                months[month] = val
+        result.append({"label": label, "code": code, "name": clean_name, "months": months})
+    return result
+
+
 def extract_date_from_filename(filename):
     match = re.search(r"(\d{2})-(\d{2})-(\d{2})", filename)
     if not match:
@@ -350,6 +399,89 @@ def process_xlsx_merge(xlsx_file, target_sheet_url, target_worksheet_name):
         st.warning("ไม่พบแถวที่จับคู่ได้เลย — ตรวจสอบว่าอัปโหลด PDF เดือนเดียวกันไปแล้วหรือยัง")
 
 
+def process_fyp_merge(xlsx_file, target_sheet_url, fyp_worksheet_name):
+    with st.spinner("กำลังอ่านไฟล์ xlsx..."):
+        entries = parse_fyp_xlsx(xlsx_file)
+    st.success(f"อ่านไฟล์ xlsx สำเร็จ พบข้อมูล {len(entries)} แถว")
+
+    try:
+        gc = get_gsheet_client()
+        sh = gc.open_by_url(target_sheet_url)
+        try:
+            ws = sh.worksheet(fyp_worksheet_name)
+        except gspread.WorksheetNotFound:
+            ws = sh.add_worksheet(title=fyp_worksheet_name, rows=1000, cols=20)
+    except Exception as e:
+        st.error(f"เปิด Google Sheet ไม่สำเร็จ: {e}")
+        return
+
+    existing = ws.get_all_values()
+    if not existing:
+        ws.append_row(FYP_HEADER)
+        existing = [FYP_HEADER]
+
+    # แถวที่มีอยู่แล้ว จับคู่ด้วย (ตำแหน่ง, รหัส)
+    row_lookup = {}
+    for i, row in enumerate(existing[1:], start=2):
+        if len(row) > 2:
+            row_lookup[(row[1], row[2])] = i
+
+    next_new_row = len(existing) + 1
+    updates = []
+
+    for entry in entries:
+        key = (entry["label"], entry["code"])
+        row_num = row_lookup.get(key)
+
+        if row_num is not None and row_num <= len(existing):
+            current = list(existing[row_num - 1])
+        else:
+            current = []
+        # เติมให้ครบ 16 ช่อง (A-P)
+        current = (current + [""] * 16)[:16]
+
+        current[0] = entry["name"]
+        current[1] = entry["label"]
+        current[2] = entry["code"]
+
+        for month, value in entry["months"].items():
+            col_idx = 3 + FYP_MONTHS.index(month)  # D=index3 ในลิสต์ 0-based
+            current[col_idx] = value
+
+        # คำนวณ "สะสม" จากผลรวมของทุกเดือนที่มีค่าในแถวนี้ (หลังอัปเดตแล้ว)
+        total = 0
+        has_value = False
+        for month_idx in range(3, 15):
+            v = current[month_idx]
+            try:
+                total += float(v)
+                has_value = True
+            except (TypeError, ValueError):
+                continue
+        current[15] = total if has_value else ""
+
+        if row_num is None:
+            row_num = next_new_row
+            next_new_row += 1
+            row_lookup[key] = row_num
+            # ขยาย existing ให้ index ตรงกัน เผื่อมีหลายแถวใหม่ในไฟล์เดียวกัน
+            while len(existing) < row_num:
+                existing.append([""] * 16)
+            existing[row_num - 1] = current
+        else:
+            existing[row_num - 1] = current
+
+        updates.append({"range": f"A{row_num}:P{row_num}", "values": [current]})
+
+    if updates:
+        with st.spinner("กำลังเขียนข้อมูลเข้าชีต FYP..."):
+            ws.batch_update(updates)
+        st.success(f"อัปเดตชีต FYP สำเร็จ {len(updates)} แถว")
+        st.markdown(f"[เปิด Google Sheet]({target_sheet_url})")
+    else:
+        st.warning("ไม่พบข้อมูลที่จะนำเข้า")
+
+
 ALLOWED_FILENAME_KEYWORDS = ("monthpremium", "lalldailypremium", "dailypremium")
 
 
@@ -383,3 +515,23 @@ if import_clicked:
 
         if uploaded_xlsx:
             process_xlsx_merge(uploaded_xlsx, sheet_url, worksheet_name)
+
+
+st.divider()
+st.subheader("นำเข้าข้อมูล FYP (แยกต่างหาก ไม่เกี่ยวกับด้านบน)")
+st.write("อัปโหลดไฟล์ xlsx ที่มีคอลัมน์ค่าตามเดือน (ม.ค.-ธ.ค.) ระบบจะจับคู่คนเดิมด้วย ตำแหน่ง+รหัส แล้วอัปเดตเฉพาะเดือนที่มีข้อมูล")
+
+fyp_uploaded_xlsx = st.file_uploader(
+    "แนบไฟล์ xlsx สำหรับ FYP",
+    type=["xlsx"],
+    accept_multiple_files=False,
+    key=f"fyp_uploader_{gen}",
+)
+
+fyp_import_clicked = st.button("📊 Import เข้า FYP", use_container_width=True)
+
+if fyp_import_clicked:
+    if not fyp_uploaded_xlsx:
+        st.warning("กรุณาแนบไฟล์ xlsx ก่อนกด Import")
+    else:
+        process_fyp_merge(fyp_uploaded_xlsx, sheet_url, "FYP")
