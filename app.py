@@ -174,6 +174,9 @@ FIELDNAMES = ["ตำแหน่ง", "รหัส", "ชื่อ-สกุ�
               "ฐานเบี้ย", "%เบี้ยปีแรก/ฐาน"]
 
 
+VALID_POSITION_LABELS = {"ฝ่าย", "ภาค", "ศูนย์", "หน่วย", "ตัวแทน"}
+
+
 def parse_xlsx_col_a(text):
     left, _, name = text.partition(":")
     left = left.strip()
@@ -204,6 +207,9 @@ def parse_xlsx(file_obj):
         if not col_a:
             continue
         label, code, _name = parse_xlsx_col_a(str(col_a))
+        if label not in VALID_POSITION_LABELS:
+            # ข้ามแถวท้ายไฟล์ที่ไม่ใช่ข้อมูลจริง เช่น "Applied filters: ..."
+            continue
         match_code = match_code_for_label(label, code)
         result.append((label, match_code, col_c))
     return result
@@ -248,6 +254,9 @@ def parse_fyp_xlsx(file_obj):
         if not col_a:
             continue
         label, code, name = parse_xlsx_col_a(str(col_a))
+        if label not in VALID_POSITION_LABELS:
+            # ข้ามแถวท้ายไฟล์ที่ไม่ใช่ข้อมูลจริง เช่น "Applied filters: ..."
+            continue
         clean_name = strip_title_prefix(name)
         months = {}
         for col_idx, month in month_col_map.items():
@@ -535,3 +544,23 @@ if fyp_import_clicked:
         st.warning("กรุณาแนบไฟล์ xlsx ก่อนกด Import")
     else:
         process_fyp_merge(fyp_uploaded_xlsx, sheet_url, "FYP")
+
+
+st.divider()
+st.subheader("นำเข้าข้อมูล FYC (แยกต่างหาก ไม่เกี่ยวกับด้านบน)")
+st.write("อัปโหลดไฟล์ xlsx ที่มีคอลัมน์ค่าตามเดือน (ม.ค.-ธ.ค.) ระบบจะจับคู่คนเดิมด้วย ตำแหน่ง+รหัส แล้วอัปเดตเฉพาะเดือนที่มีข้อมูล")
+
+fyc_uploaded_xlsx = st.file_uploader(
+    "แนบไฟล์ xlsx สำหรับ FYC",
+    type=["xlsx"],
+    accept_multiple_files=False,
+    key=f"fyc_uploader_{gen}",
+)
+
+fyc_import_clicked = st.button("📈 Import เข้า FYC", use_container_width=True)
+
+if fyc_import_clicked:
+    if not fyc_uploaded_xlsx:
+        st.warning("กรุณาแนบไฟล์ xlsx ก่อนกด Import")
+    else:
+        process_fyp_merge(fyc_uploaded_xlsx, sheet_url, "FYC")
