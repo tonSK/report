@@ -267,6 +267,32 @@ def parse_fyp_xlsx(file_obj):
     return result
 
 
+CLOSEBOOK_HEADER = ["ชื่อ", "ตำแหน่ง", "เบี้ยปีแรก", "ค่าบำเหน็จ", "%เบี้ยปีแรก", "เบี้ยต่อไป"]
+
+
+def parse_closebook_xlsx(file_obj):
+    """อ่านไฟล์ xlsx วันปิดบัญชี (หัวตารางแถวที่ 1, ข้อมูลเริ่มแถวที่ 2)
+    คืนค่า list of [ชื่อ, ตำแหน่ง, เบี้ยปีแรก, ค่าบำเหน็จ, %เบี้ยปีแรก, เบี้ยต่อไป]"""
+    wb = openpyxl.load_workbook(file_obj, data_only=True)
+    ws = wb.worksheets[0]
+    result = []
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        col_a = row[0]
+        if not col_a:
+            continue
+        label, code, name = parse_xlsx_col_a(str(col_a))
+        if label not in VALID_POSITION_LABELS:
+            # ข้ามแถวท้ายไฟล์ที่ไม่ใช่ข้อมูลจริง เช่น "Applied filters: ..."
+            continue
+        clean_name = strip_title_prefix(name)
+        first_year = row[2] if len(row) > 2 else None
+        commission = row[3] if len(row) > 3 else None
+        first_year_pct = row[4] if len(row) > 4 else None
+        renewal = row[5] if len(row) > 5 else None
+        result.append([clean_name, label, first_year, commission, first_year_pct, renewal])
+    return result
+
+
 def extract_date_from_filename(filename):
     match = re.search(r"(\d{2})-(\d{2})-(\d{2})", filename)
     if not match:
@@ -494,6 +520,42 @@ def process_fyp_merge(xlsx_file, target_sheet_url, fyp_worksheet_name):
         st.warning("ไม่พบข้อมูลที่จะนำเข้า")
 
 
+def process_closebook_import(xlsx_file, target_sheet_url, worksheet_name):
+    with st.spinner("กำลังอ่านไฟล์ xlsx..."):
+        rows = parse_closebook_xlsx(xlsx_file)
+    st.success(f"อ่านไฟล์ xlsx สำเร็จ พบข้อมูล {len(rows)} แถว")
+
+    try:
+        gc = get_gsheet_client()
+        sh = gc.open_by_url(target_sheet_url)
+        try:
+            ws = sh.worksheet(worksheet_name)
+            is_new = False
+        except gspread.WorksheetNotFound:
+            ws = sh.add_worksheet(title=worksheet_name, rows=1000, cols=10)
+            is_new = True
+    except Exception as e:
+        st.error(f"เปิด Google Sheet ไม่สำเร็จ: {e}")
+        return
+
+    with st.spinner(f"กำลังล้างข้อมูลเดิมในชีต {worksheet_name} (เก็บหัวข้อไว้)..."):
+        if is_new:
+            ws.append_row(CLOSEBOOK_HEADER)
+        else:
+            existing = ws.get_all_values()
+            if len(existing) > 1:
+                ws.batch_clear([f"A2:F{len(existing)}"])
+    st.info(f"ล้างข้อมูลเดิมในชีต {worksheet_name} เรียบร้อยแล้ว (เก็บหัวข้อไว้)")
+
+    if rows:
+        with st.spinner("กำลังเขียนข้อมูลเข้า Google Sheet..."):
+            ws.update(range_name=f"A2:F{len(rows) + 1}", values=rows)
+        st.success(f"นำเข้าข้อมูล {worksheet_name} สำเร็จ {len(rows)} แถว")
+        st.markdown(f"[เปิด Google Sheet]({target_sheet_url})")
+    else:
+        st.warning("ไม่พบข้อมูลที่จะนำเข้า")
+
+
 ALLOWED_FILENAME_KEYWORDS = ("monthpremium", "lalldailypremium", "dailypremium")
 
 
@@ -567,3 +629,23 @@ if fyc_import_clicked:
         st.warning("กรุณาแนบไฟล์ xlsx ก่อนกด Import")
     else:
         process_fyp_merge(fyc_uploaded_xlsx, sheet_url, "FYC")
+
+
+st.divider()
+st.subheader("นำเข้าข้อมูล วันปิดบัญชี (แยกต่างหาก ไม่เกี่ยวกับด้านบน)")
+st.write("อัปโหลดไฟล์ xlsx วันปิดบัญชี ระบบจะล้างข้อมูลเดิมในชีต CloseBook (เก็บหัวข้อไว้) แล้วนำเข้าข้อมูลใหม่ทั้งหมด")
+
+closebook_uploaded_xlsx = st.file_uploader(
+    "แนบไฟล์ xlsx วันปิดบัญชี",
+    type=["xlsx"],
+    accept_multiple_files=False,
+    key=f"closebook_uploader_{gen}",
+)
+
+closebook_import_clicked = st.button("📕 Import เข้า CloseBook", use_container_width=True)
+
+if closebook_import_clicked:
+    if not closebook_uploaded_xlsx:
+        st.warning("กรุณาแนบไฟล์ xlsx ก่อนกด Import")
+    else:
+        process_closebook_import(closebook_uploaded_xlsx, sheet_url, "CloseBook")
