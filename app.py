@@ -267,7 +267,8 @@ def parse_fyp_xlsx(file_obj):
     return result
 
 
-CLOSEBOOK_HEADER = ["ชื่อ", "ตำแหน่ง", "เบี้ยปีแรก", "ค่าบำเหน็จ", "%เบี้ยปีแรก", "เบี้ยต่อไป"]
+CLOSEBOOK_HEADER = ["ชื่อ-สกุล", "ตำแหน่ง", "ภาค", "ศูนย์", "หน่วย",
+                     "เบี้ยปีแรก", "ค่าบำเหน็จ", "%เบี้ยปีแรก", "เบี้ยต่อไป"]
 
 
 def parse_closebook_xlsx(file_obj):
@@ -520,10 +521,41 @@ def process_fyp_merge(xlsx_file, target_sheet_url, fyp_worksheet_name):
         st.warning("ไม่พบข้อมูลที่จะนำเข้า")
 
 
+def build_import_affiliation_lookup(sh):
+    """อ่านชีต Import คืนค่า dict: (ชื่อ-สกุล, ตำแหน่ง(ปรับให้ ภาค(GL)=ภาค)) -> (ภาค, ศูนย์, หน่วย)"""
+    try:
+        ws_import = sh.worksheet("Import")
+    except gspread.WorksheetNotFound:
+        return None
+
+    existing = ws_import.get_all_values()
+    if len(existing) < 2:
+        return {}
+
+    header = existing[0]
+    try:
+        idx_name = header.index("ชื่อ-สกุล")
+        idx_pos = header.index("ตำแหน่ง")
+        idx_pak = header.index("ภาค")
+        idx_soon = header.index("ศูนย์")
+        idx_nuay = header.index("หน่วย")
+    except ValueError:
+        return {}
+
+    lookup = {}
+    for row in existing[1:]:
+        max_idx = max(idx_name, idx_pos, idx_pak, idx_soon, idx_nuay)
+        if len(row) <= max_idx:
+            continue
+        key = (row[idx_name], normalize_label(row[idx_pos]))
+        lookup[key] = (row[idx_pak], row[idx_soon], row[idx_nuay])
+    return lookup
+
+
 def process_closebook_import(xlsx_file, target_sheet_url, worksheet_name):
     with st.spinner("กำลังอ่านไฟล์ xlsx..."):
-        rows = parse_closebook_xlsx(xlsx_file)
-    st.success(f"อ่านไฟล์ xlsx สำเร็จ พบข้อมูล {len(rows)} แถว")
+        parsed_rows = parse_closebook_xlsx(xlsx_file)
+    st.success(f"อ่านไฟล์ xlsx สำเร็จ พบข้อมูล {len(parsed_rows)} แถว")
 
     try:
         gc = get_gsheet_client()
@@ -538,19 +570,36 @@ def process_closebook_import(xlsx_file, target_sheet_url, worksheet_name):
         st.error(f"เปิด Google Sheet ไม่สำเร็จ: {e}")
         return
 
+    affiliation_lookup = build_import_affiliation_lookup(sh)
+    if affiliation_lookup is None:
+        st.warning("ไม่พบชีต Import — คอลัมน์ ภาค/ศูนย์/หน่วย จะว่างไว้ก่อน กรุณานำเข้า PDF ที่ชีต Import ก่อน")
+        affiliation_lookup = {}
+
+    matched = 0
+    rows = []
+    for name, label, first_year, commission, pct, renewal in parsed_rows:
+        key = (name, normalize_label(label))
+        pak, soon, nuay = affiliation_lookup.get(key, ("", "", ""))
+        if key in affiliation_lookup:
+            matched += 1
+        rows.append([name, label, pak, soon, nuay, first_year, commission, pct, renewal])
+
     with st.spinner(f"กำลังล้างข้อมูลเดิมในชีต {worksheet_name} (เก็บหัวข้อไว้)..."):
         if is_new:
             ws.append_row(CLOSEBOOK_HEADER)
         else:
             existing = ws.get_all_values()
             if len(existing) > 1:
-                ws.batch_clear([f"A2:F{len(existing)}"])
+                ws.batch_clear([f"A2:I{len(existing)}"])
     st.info(f"ล้างข้อมูลเดิมในชีต {worksheet_name} เรียบร้อยแล้ว (เก็บหัวข้อไว้)")
 
     if rows:
         with st.spinner("กำลังเขียนข้อมูลเข้า Google Sheet..."):
-            ws.update(range_name=f"A2:F{len(rows) + 1}", values=rows)
-        st.success(f"นำเข้าข้อมูล {worksheet_name} สำเร็จ {len(rows)} แถว")
+            ws.update(range_name=f"A2:I{len(rows) + 1}", values=rows)
+        st.success(
+            f"นำเข้าข้อมูล {worksheet_name} สำเร็จ {len(rows)} แถว "
+            f"(จับคู่ ภาค/ศูนย์/หน่วย จาก Import ได้ {matched} แถว)"
+        )
         st.markdown(f"[เปิด Google Sheet]({target_sheet_url})")
     else:
         st.warning("ไม่พบข้อมูลที่จะนำเข้า")
