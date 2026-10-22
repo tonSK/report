@@ -206,12 +206,12 @@ def parse_xlsx(file_obj):
         col_a, col_c = row[0], row[2]
         if not col_a:
             continue
-        label, code, _name = parse_xlsx_col_a(str(col_a))
+        label, code, name = parse_xlsx_col_a(str(col_a))
         if label not in VALID_POSITION_LABELS:
             # ข้ามแถวท้ายไฟล์ที่ไม่ใช่ข้อมูลจริง เช่น "Applied filters: ..."
             continue
         match_code = match_code_for_label(label, code)
-        result.append((label, match_code, col_c))
+        result.append((label, match_code, col_c, strip_title_prefix(name)))
     return result
 
 
@@ -413,12 +413,26 @@ def process_xlsx_merge(xlsx_file, target_sheet_url, target_worksheet_name):
             key = (normalize_label(row[idx_pos]), row[idx_code].replace("-", ""))
             row_lookup[key] = i
 
+    # ฝ่าย: รหัสใน PDF (เช่น "6") ไม่ตรงกับ xlsx (เช่น "L506S" -> "506")
+    # จึงจับคู่ด้วยชื่อแทน (ในแต่ละไฟล์มีฝ่ายเดียว)
+    try:
+        idx_name = header.index("ชื่อ-สกุล")
+    except ValueError:
+        idx_name = None
+    fah_by_name = {}
+    if idx_name is not None:
+        for i, row in enumerate(existing[1:], start=2):
+            if len(row) > max(idx_pos, idx_name) and row[idx_pos] == "ฝ่าย":
+                fah_by_name[strip_title_prefix(row[idx_name])] = i
+
     updates = []
     matched = 0
-    for label, match_code, col_c in xlsx_rows:
+    for label, match_code, col_c, name in xlsx_rows:
         key = (normalize_label(label), match_code)
-        if key in row_lookup:
-            row_num = row_lookup[key]
+        row_num = row_lookup.get(key)
+        if row_num is None and label == "ฝ่าย":
+            row_num = fah_by_name.get(name)
+        if row_num is not None:
             try:
                 value = f"{round(float(col_c) * 100, 2):.2f}%"
             except (TypeError, ValueError):
